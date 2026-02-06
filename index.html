@@ -1678,7 +1678,8 @@
           pa: 1000,
           moveTarget: randomPointInRoom(type.roomIndex),
           nextMoveUpdate: now + 0.3 + Math.random() * 0.4,
-          spawnTime: now
+          spawnTime: now,
+          velocity: new THREE.Vector3()
         });
       }
 
@@ -3064,21 +3065,30 @@
         if (septiaFiring && septiaFireCooldown <= 0 && (en > 0 || septiaExpanded) && !energyLock) {
           const available = septiaDiamonds.find((d) => d.userData.state === "idle" && (!d.userData.extra || septiaExpanded));
           if (available) {
+            const septiaTarget = findSeptiaTarget(player.position, 150);
+            if (!septiaTarget) {
+              septiaFireCooldown = 0;
+            } else {
             if (now >= expansionActiveUntil) {
-              en = Math.max(0, en - 2);
+              en = Math.max(0, en - 0.5);
             }
             septiaFireCooldown = septiaExpanded ? 0.0125 : 0.025;
             available.userData.state = "attack";
             available.userData.timer = 0;
             available.userData.hitCount = 0;
-            available.userData.nextHit = 0.4;
-            available.userData.target = findSeptiaTarget(player.position, 150);
+            available.userData.nextHit = 1;
+            available.userData.hitLimit = septiaExpanded ? 12 : 6;
+            available.userData.nextHitAt = now + 1;
+            available.userData.attackStartAt = now;
+            available.userData.engageUntil = now + available.userData.hitLimit;
+            available.userData.target = septiaTarget;
             available.userData.dir = new THREE.Vector3(
               -Math.sin(yaw) * Math.cos(pitch),
               Math.sin(pitch),
               -Math.cos(yaw) * Math.cos(pitch)
             ).normalize();
-            available.userData.hitLimit = septiaExpanded ? 12 : 6;
+            available.userData.worldPos = null;
+            }
           }
         }
         let idleCount = 0;
@@ -3131,36 +3141,45 @@
           const basePos = offset;
           if (d.userData.state === "idle") {
             d.position.copy(basePos);
+            d.userData.worldPos = null;
             idleCount += 1;
           } else {
             d.userData.timer += delta;
             const t = d.userData.timer;
-            const outPhase = Math.min(1, t / 0.9);
-            const backPhase = Math.max(0, (t - 0.9) / 0.6);
             const baseWorld = septiaGroup.localToWorld(basePos.clone());
-            const target = d.userData.target || findSeptiaTarget(baseWorld, 150);
-            let attackWorld;
-            if (target) {
-              attackWorld = baseWorld.clone().lerp(target.mesh.position, outPhase);
-            } else {
-              attackWorld = baseWorld.clone().addScaledVector(localForward, 1.6 * outPhase);
-            }
-            const blendedWorld = attackWorld.lerp(baseWorld, backPhase);
-            const localPos = septiaGroup.worldToLocal(blendedWorld.clone());
-            d.position.copy(localPos);
+            const target = d.userData.target;
             const limit = d.userData.hitLimit || 6;
-            if (t >= d.userData.nextHit && d.userData.hitCount < limit) {
-              const worldPos = new THREE.Vector3();
-              d.getWorldPosition(worldPos);
-              const target = d.userData.target || findSeptiaTarget(worldPos, 150);
+            const targetAlive = !!(target && target.mesh && enemies.includes(target));
+            const engageUntil = d.userData.engageUntil || (now + limit);
+            const attackWindow = now < engageUntil && d.userData.hitCount < limit;
+            if (!d.userData.worldPos) {
+              d.userData.worldPos = baseWorld.clone();
+            }
+            if (attackWindow) {
+              if (targetAlive) {
+                d.userData.worldPos.lerp(target.mesh.position, Math.min(1, 14 * delta));
+              }
+            } else {
+              d.userData.worldPos.lerp(baseWorld, Math.min(1, 3.2 * delta));
+            }
+            const localPos = septiaGroup.worldToLocal(d.userData.worldPos.clone());
+            d.position.copy(localPos);
+            if (targetAlive && now >= (d.userData.nextHitAt || (now + 1)) && d.userData.hitCount < limit) {
               if (target) {
-                applyEnemyDamage(target, 500);
+                applyEnemyDamage(target, septiaExpanded ? 650 : 500);
               }
               d.userData.hitCount += 1;
-              d.userData.nextHit += 0.4;
+              d.userData.nextHit += 1;
+              d.userData.nextHitAt = (d.userData.nextHitAt || now) + 1;
             }
-            if (t >= 3) {
+            const returned = d.userData.worldPos.distanceTo(baseWorld) <= 0.08;
+            if ((!attackWindow && returned) || now >= (engageUntil + 3)) {
               d.userData.state = "idle";
+              d.userData.target = null;
+              d.userData.worldPos = null;
+              d.userData.nextHitAt = 0;
+              d.userData.attackStartAt = 0;
+              d.userData.engageUntil = 0;
             }
           }
         }
@@ -3190,6 +3209,7 @@
         const threatDirs = [];
         for (const enemy of enemies) {
           const enemyPos = enemy.mesh.position;
+          const prevEnemyPos = enemyPos.clone();
           const dist = enemyPos.distanceTo(player.position);
           const targeting = playerRoomIndex === enemy.roomIndex && dist <= 7.5;
           if (targeting) anyThreat = true;
@@ -3216,6 +3236,7 @@
           enemyPos.x = clamp(enemyPos.x, bounds.minX, bounds.maxX);
           enemyPos.z = clamp(enemyPos.z, bounds.minZ, bounds.maxZ);
           enemyPos.y = floorY + enemyRadius;
+          enemy.velocity.copy(enemyPos.clone().sub(prevEnemyPos).divideScalar(Math.max(delta, 0.0001)));
 
           if (enemy.label) {
             enemy.label.textContent = `AP ${Math.ceil(enemy.ap)} / PA ${Math.ceil(enemy.pa)}`;
@@ -3465,10 +3486,16 @@
           if (lockTargets.length > 0) {
             const target = lockTargets[b.userData.lockIndex % lockTargets.length];
             if (target && target.target) {
-              const targetPos = target.target.mesh.position.clone();
-              const desired = targetPos.sub(b.position).normalize();
+              const targetEnemy = target.target;
+              const targetPos = targetEnemy.mesh.position.clone();
+              const targetVel = targetEnemy.velocity ? targetEnemy.velocity.clone() : new THREE.Vector3();
+              const speed = Math.max(1, b.userData.velocity.length());
+              const leadTime = Math.min(0.55, b.position.distanceTo(targetPos) / speed);
+              const predicted = targetPos.addScaledVector(targetVel, leadTime);
+              const desired = predicted.sub(b.position).normalize();
               const current = b.userData.velocity.clone().normalize();
-              const steer = current.lerp(desired, 0.2).normalize();
+              const steerPower = b.userData.isBeam ? 0.5 : 0.38;
+              const steer = current.lerp(desired, steerPower).normalize();
               b.userData.velocity.copy(steer.multiplyScalar(b.userData.velocity.length()));
             }
           }
