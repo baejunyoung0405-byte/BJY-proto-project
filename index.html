@@ -90,6 +90,20 @@
       pointer-events: none;
       z-index: 4;
     }
+    #aimModePanel {
+      position: fixed;
+      left: 16px;
+      bottom: 150px;
+      z-index: 8;
+      background: rgba(10, 10, 12, 0.65);
+      border: 1px solid rgba(255, 255, 255, 0.25);
+      border-radius: 10px;
+      padding: 8px 12px;
+      color: #ffffff;
+      font-size: 12px;
+      letter-spacing: 0.02em;
+      min-width: 140px;
+    }
     #lockCircleLarge, .lockCircleSmall {
       position: fixed;
       left: 50%;
@@ -513,6 +527,24 @@
       z-index: 51;
       transition: opacity 0.1s linear;
     }
+    #statusBlackOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 1);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 3;
+      transition: opacity 0.08s linear;
+    }
+    #statusWhiteOverlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255, 255, 255, 1);
+      opacity: 0;
+      pointer-events: none;
+      z-index: 3;
+      transition: opacity 0.08s linear;
+    }
     #menuOverlay {
       position: fixed;
       inset: 0;
@@ -894,6 +926,91 @@
       display: block;
       width: 100%;
       height: 100%;
+      touch-action: none;
+    }
+    #mobileControls {
+      display: none;
+      position: fixed;
+      inset: 0;
+      z-index: 30;
+      pointer-events: none;
+    }
+    body.mobile-mode #mobileControls {
+      display: block;
+    }
+    body.mobile-mode.menu-open #mobileControls {
+      display: none;
+    }
+    .mobileZone {
+      position: fixed;
+      bottom: 18px;
+      width: min(36vw, 220px);
+      aspect-ratio: 1 / 1;
+      border-radius: 50%;
+      border: 1px solid rgba(255, 255, 255, 0.28);
+      background: rgba(8, 8, 12, 0.42);
+      box-shadow: inset 0 0 16px rgba(0, 0, 0, 0.35);
+      pointer-events: auto;
+      touch-action: none;
+    }
+    #mobileMoveZone {
+      left: 16px;
+    }
+    #mobileLookZone {
+      right: 16px;
+    }
+    .mobileStick {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 34%;
+      height: 34%;
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      background: rgba(255, 255, 255, 0.12);
+      pointer-events: none;
+    }
+    #mobileButtons {
+      position: fixed;
+      right: 16px;
+      bottom: calc(min(36vw, 220px) + 34px);
+      display: grid;
+      grid-template-columns: repeat(2, minmax(54px, 72px));
+      gap: 8px;
+      pointer-events: auto;
+    }
+    .mobileBtn {
+      border: 1px solid rgba(255, 255, 255, 0.45);
+      border-radius: 10px;
+      background: rgba(10, 10, 12, 0.72);
+      color: #ffffff;
+      font-size: 11px;
+      letter-spacing: 0.04em;
+      padding: 8px 0;
+      touch-action: manipulation;
+    }
+    .mobileBtn:active,
+    .mobileBtn.active {
+      background: rgba(86, 182, 247, 0.35);
+      border-color: rgba(86, 182, 247, 0.9);
+    }
+    body.mobile-mode #ui {
+      max-width: min(72vw, 360px);
+      padding: 10px 12px;
+    }
+    body.mobile-mode #ui p {
+      font-size: 12px;
+    }
+    body.mobile-mode #minimap {
+      width: min(42vw, 180px);
+      height: min(42vw, 180px);
+      top: 12px;
+      right: 12px;
+    }
+    body.mobile-mode #ammoPanel,
+    body.mobile-mode #ammoPanelLeft {
+      display: none;
     }
   </style>
 </head>
@@ -907,6 +1024,7 @@
     <div id="minimap" aria-hidden="true"><canvas id="minimapCanvas"></canvas></div>
     <div id="crosshair" aria-hidden="true"></div>
     <div id="lockCircleLarge" aria-hidden="true"></div>
+    <div id="aimModePanel" aria-live="polite">조준 모드: 자동</div>
     <div id="hitGreen">HIT</div>
     <div id="hitRed"><div>HIT</div><div>DAMAGE</div></div>
   <div id="ammoPanel" class="ammoPanel" aria-live="polite">
@@ -998,6 +1116,23 @@
     <div id="repairOverlay"></div>
     <div id="damageShield"></div>
     <div id="expansionOverlay"></div>
+    <div id="statusBlackOverlay"></div>
+    <div id="statusWhiteOverlay"></div>
+    <div id="mobileControls" aria-hidden="true">
+      <div id="mobileMoveZone" class="mobileZone">
+        <div id="mobileMoveStick" class="mobileStick"></div>
+      </div>
+      <div id="mobileLookZone" class="mobileZone">
+        <div id="mobileLookStick" class="mobileStick"></div>
+      </div>
+      <div id="mobileButtons">
+        <button id="mobileJumpBtn" class="mobileBtn" type="button">JUMP</button>
+        <button id="mobileBoostBtn" class="mobileBtn" type="button">BOOST</button>
+        <button id="mobileFireLBtn" class="mobileBtn" type="button">L-FIRE</button>
+        <button id="mobileFireRBtn" class="mobileBtn" type="button">R-FIRE</button>
+        <button id="mobileMenuBtn" class="mobileBtn" type="button">MENU</button>
+      </div>
+    </div>
     <div id="paPanel" aria-live="polite">
       <div class="label">PA 9999 / 9999</div>
       <div id="paBar">
@@ -1559,7 +1694,14 @@
         );
         mesh.position.copy(pos);
         scene.add(mesh);
-        const block = { mesh, ap: 5000, pa: 1000, roomIndex, slotIndex };
+        const block = {
+          mesh,
+          ap: 5000,
+          pa: 1000,
+          roomIndex,
+          slotIndex,
+          defense: { en: 140, ballistic: 140, explosive: 140 }
+        };
         const box = {
           minX: pos.x - destructibleBlockSize * 0.5,
           maxX: pos.x + destructibleBlockSize * 0.5,
@@ -1590,10 +1732,10 @@
 
       const enemyRadius = playerSize * 0.5;
       const enemyTypes = [
-        { roomIndex: 1, color: 0xff4b4b },
-        { roomIndex: 2, color: 0xffd93d },
-        { roomIndex: 3, color: 0x43d66d },
-        { roomIndex: 4, color: 0x3aa0ff }
+        { roomIndex: 1, color: 0xff4b4b, ballSubtype: "shock", beamSubtype: "flash", defense: { en: 260, ballistic: 180, explosive: 180 } },
+        { roomIndex: 2, color: 0xffd93d, ballSubtype: "freeze", beamSubtype: "laser", defense: { en: 180, ballistic: 260, explosive: 180 } },
+        { roomIndex: 3, color: 0x43d66d, ballSubtype: "acid", beamSubtype: "kojima", defense: { en: 180, ballistic: 180, explosive: 260 } },
+        { roomIndex: 4, color: 0x3aa0ff, ballSubtype: "smoke", beamSubtype: "flash", defense: { en: 220, ballistic: 220, explosive: 220 } }
       ];
       const enemies = [];
       const enemyProjectiles = [];
@@ -1676,6 +1818,14 @@
           chargeStart: nextBeam - 10,
           ap: 5000,
           pa: 1000,
+          defense: {
+            en: type.defense?.en ?? 200,
+            ballistic: type.defense?.ballistic ?? 200,
+            explosive: type.defense?.explosive ?? 200
+          },
+          ballSubtype: type.ballSubtype || "pulse",
+          beamSubtype: type.beamSubtype || "laser",
+          freezeStacks: [],
           moveTarget: randomPointInRoom(type.roomIndex),
           nextMoveUpdate: now + 0.3 + Math.random() * 0.4,
           spawnTime: now,
@@ -1751,7 +1901,19 @@
     let yaw = 0;
     let pitch = 0;
     const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+    const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
+    const uiPanel = document.getElementById("ui");
     const hint = document.getElementById("hint");
+    const mobileControls = document.getElementById("mobileControls");
+    const mobileMoveZone = document.getElementById("mobileMoveZone");
+    const mobileMoveStick = document.getElementById("mobileMoveStick");
+    const mobileLookZone = document.getElementById("mobileLookZone");
+    const mobileLookStick = document.getElementById("mobileLookStick");
+    const mobileJumpBtn = document.getElementById("mobileJumpBtn");
+    const mobileBoostBtn = document.getElementById("mobileBoostBtn");
+    const mobileFireLBtn = document.getElementById("mobileFireLBtn");
+    const mobileFireRBtn = document.getElementById("mobileFireRBtn");
+    const mobileMenuBtn = document.getElementById("mobileMenuBtn");
     const staminaFill = document.getElementById("staminaFill");
     const menuOverlay = document.getElementById("menuOverlay");
     const ammoLeft = document.getElementById("ammoLeft");
@@ -1776,6 +1938,7 @@
       const septiaCountEl = document.getElementById("septiaCount");
       const septiaGaugeEl = document.getElementById("septiaGauge");
       const lockCircleLarge = document.getElementById("lockCircleLarge");
+      const aimModePanel = document.getElementById("aimModePanel");
       const hitGreen = document.getElementById("hitGreen");
       const hitRed = document.getElementById("hitRed");
       const expansionCooldownEl = document.getElementById("expansionCooldown");
@@ -1784,6 +1947,8 @@
       const kitCooldownEl = document.getElementById("kitCooldown");
     const repairOverlay = document.getElementById("repairOverlay");
     const damageShield = document.getElementById("damageShield");
+    const statusBlackOverlay = document.getElementById("statusBlackOverlay");
+    const statusWhiteOverlay = document.getElementById("statusWhiteOverlay");
     const menuClose = document.getElementById("menuClose");
     const menuTabs = Array.from(document.querySelectorAll(".menuTab"));
     const menuSections = Array.from(document.querySelectorAll(".menuSection"));
@@ -1808,6 +1973,16 @@
     const itemGrid = document.getElementById("itemGrid");
     const shopGrid = document.getElementById("shopGrid");
     const previewCanvas = document.getElementById("assemblyPreviewCanvas");
+      if (isTouchDevice) {
+        document.body.classList.add("mobile-mode");
+        if (uiPanel) {
+          const mobileGuide = document.createElement("p");
+          mobileGuide.textContent = "모바일: 좌측 패드 이동 · 우측 패드 시점 · JUMP/BOOST/FIRE 버튼 사용";
+          uiPanel.appendChild(mobileGuide);
+        }
+      } else if (mobileControls) {
+        mobileControls.style.display = "none";
+      }
       let stamina = 100;
       let en = 100;
       let enCooldown = false;
@@ -1855,6 +2030,15 @@
       let lockTargetUntil = 0;
       const lockTargets = [];
       let lockCircleOffset = 0;
+      let autoAimMode = true;
+      let aimAssistHolding = false;
+      let aimAssistBoostUntil = 0;
+      let aimAssistTarget = null;
+      let aimAssistAcquirePending = false;
+      let aimAssistDownMouse5 = false;
+      let aimAssistDownForwardKey = false;
+      let aimAssistMouseDownAt = 0;
+      let aimAssistPendingRelease = false;
       let hitGreenUntil = 0;
       let hitRedUntil = 0;
       let hitRedDamageUntil = 0;
@@ -1865,6 +2049,136 @@
         el.style.display = "none";
         document.body.appendChild(el);
         lockCircles.push(el);
+      }
+      function updateAimModeDisplay(forcedManual = false) {
+        if (!aimModePanel) return;
+        if (forcedManual) {
+          aimModePanel.textContent = "조준 모드: 수동(강제)";
+          aimModePanel.style.borderColor = "rgba(255, 255, 255, 0.45)";
+        } else {
+          aimModePanel.textContent = `조준 모드: ${autoAimMode ? "자동" : "수동"}`;
+          aimModePanel.style.borderColor = autoAimMode ? "rgba(255, 90, 90, 0.55)" : "rgba(255, 255, 255, 0.45)";
+        }
+      }
+      updateAimModeDisplay();
+
+      function beginAimAssist() {
+        aimAssistHolding = true;
+        aimAssistAcquirePending = true;
+        aimAssistBoostUntil = 0;
+      }
+
+      function endAimAssist() {
+        aimAssistHolding = false;
+        aimAssistAcquirePending = false;
+        aimAssistTarget = null;
+        aimAssistBoostUntil = 0;
+        aimAssistPendingRelease = false;
+      }
+
+      function syncAimAssistHoldState() {
+        const active = aimAssistDownMouse5 || aimAssistDownForwardKey;
+        if (active) {
+          if (!aimAssistHolding) beginAimAssist();
+        } else if (aimAssistHolding) {
+          endAimAssist();
+        }
+      }
+
+      function setAimAssistMouseDownState(isDown) {
+        if (aimAssistDownMouse5 === isDown) return;
+        aimAssistDownMouse5 = isDown;
+        if (isDown) {
+          aimAssistMouseDownAt = performance.now() / 1000;
+          aimAssistPendingRelease = false;
+        }
+        syncAimAssistHoldState();
+      }
+
+      function getTargetScreenPos(target) {
+        if (!target || !target.mesh) return null;
+        if (!(enemies.includes(target) || destructibleBlocks.includes(target))) return null;
+        const projected = target.mesh.position.clone().project(camera);
+        if (projected.z > 1) return null;
+        return {
+          x: (projected.x * 0.5 + 0.5) * window.innerWidth,
+          y: (-projected.y * 0.5 + 0.5) * window.innerHeight
+        };
+      }
+
+      function isTargetInAimAssistRange(target, effectiveAutoAim, centerX, centerY, lockCircleOffsetLocal) {
+        const pos = getTargetScreenPos(target);
+        if (!pos) return false;
+        if (effectiveAutoAim) {
+          const radiusPx = 320;
+          const dx = pos.x - (centerX + lockCircleOffsetLocal);
+          const dy = pos.y - centerY;
+          return (dx * dx + dy * dy) <= radiusPx * radiusPx;
+        }
+        const manualRadius = 72;
+        const dx = pos.x - centerX;
+        const dy = pos.y - centerY;
+        return (dx * dx + dy * dy) <= manualRadius * manualRadius;
+      }
+
+      function findAimAssistTarget(effectiveAutoAim, centerX, centerY, lockCircleOffsetLocal) {
+        if (effectiveAutoAim) {
+          let best = null;
+          let bestD2 = Infinity;
+          for (const t of lockTargets) {
+            if (!t || !t.target || !t.target.mesh) continue;
+            if (!(enemies.includes(t.target) || destructibleBlocks.includes(t.target))) continue;
+            const inRange = t.target.mesh.position.distanceTo(player.position) <= 150;
+            if (!inRange) continue;
+            const dx = (t.x || centerX) - centerX;
+            const dy = (t.y || centerY) - centerY;
+            const d2 = dx * dx + dy * dy;
+            if (d2 < bestD2) {
+              best = t.target;
+              bestD2 = d2;
+            }
+          }
+          if (best) return best;
+          return null;
+        }
+        const manualRadius = 72;
+        const manualRadiusSq = effectiveAutoAim ? Infinity : (manualRadius * manualRadius);
+        let best = null;
+        let bestD2 = manualRadiusSq;
+        const candidates = enemies.concat(destructibleBlocks);
+        for (const candidate of candidates) {
+          const pos = getTargetScreenPos(candidate);
+          if (!pos) continue;
+          const x = pos.x;
+          const y = pos.y;
+          const dx = x - centerX;
+          const dy = y - centerY;
+          const d2 = dx * dx + dy * dy;
+          if (d2 <= bestD2) {
+            best = candidate;
+            bestD2 = d2;
+          }
+        }
+        return best;
+      }
+
+      function applyAimAssist(target, delta, snap = false) {
+        if (!target || !target.mesh) return false;
+        if (!(enemies.includes(target) || destructibleBlocks.includes(target))) return false;
+        const eye = new THREE.Vector3(player.position.x, player.position.y + playerSize * 0.8, player.position.z);
+        const yOffset = enemies.includes(target) ? (enemyRadius * 0.15) : 0;
+        const aimPoint = target.mesh.position.clone().add(new THREE.Vector3(0, yOffset, 0));
+        const toTarget = aimPoint.sub(eye);
+        if (toTarget.lengthSq() < 1e-8) return false;
+        toTarget.normalize();
+        const desiredYaw = Math.atan2(-toTarget.x, -toTarget.z);
+        const desiredPitch = Math.asin(clamp(toTarget.y, -1, 1));
+        const yawDiff = Math.atan2(Math.sin(desiredYaw - yaw), Math.cos(desiredYaw - yaw));
+        const smooth = snap ? 1 : Math.min(1, 12 * delta);
+        yaw += yawDiff * smooth;
+        pitch += (desiredPitch - pitch) * smooth;
+        pitch = clamp(pitch, -Math.PI / 2 + 0.05, Math.PI / 2 - 0.05);
+        return true;
       }
     let kitCount = Infinity;
     let kitHoldStart = null;
@@ -1878,6 +2192,70 @@
       let repairActiveStart = 0;
       let repairActiveUntil = 0;
       let damageScale = 1;
+      const DAMAGE_FAMILY = {
+        EN: "en",
+        BALLISTIC: "ballistic",
+        EXPLOSIVE: "explosive"
+      };
+      const DAMAGE_SUBTYPE = {
+        LASER: "laser",
+        PULSE: "pulse",
+        PLASMA: "plasma",
+        CORAL: "coral",
+        KOJIMA: "kojima",
+        FLAME: "flame",
+        SHOCK: "shock",
+        FREEZE: "freeze",
+        ACID: "acid",
+        CLUSTER: "cluster",
+        SMOKE: "smoke",
+        FLASH: "flash"
+      };
+      const ATTRIBUTE_PROFILE = {
+        laser: { families: [DAMAGE_FAMILY.EN], color: 0x3aa0ff, particleColor: 0x3aa0ff },
+        pulse: { families: [DAMAGE_FAMILY.EN], color: 0xffffff, particleColor: 0xffffff },
+        plasma: {
+          families: [DAMAGE_FAMILY.EN],
+          color: 0xb45cff,
+          particleColor: 0xb45cff,
+          onHitExplosion: { scale: 0.45, radius: 2.2, subtype: DAMAGE_SUBTYPE.PLASMA }
+        },
+        coral: {
+          families: [DAMAGE_FAMILY.EN],
+          color: 0xff4b4b,
+          particleColor: 0xff4b4b,
+          ignoreDefense: [DAMAGE_FAMILY.EN],
+          onHitExplosion: { scale: 0.45, radius: 2.3, subtype: DAMAGE_SUBTYPE.CORAL }
+        },
+        kojima: {
+          families: [DAMAGE_FAMILY.EN, DAMAGE_FAMILY.BALLISTIC, DAMAGE_FAMILY.EXPLOSIVE],
+          color: 0x48ff7a,
+          particleColor: 0x48ff7a,
+          ignoreDefense: [DAMAGE_FAMILY.BALLISTIC],
+          onHitExplosion: { scale: 0.42, radius: 2.4, subtype: DAMAGE_SUBTYPE.KOJIMA }
+        },
+        flame: { families: [DAMAGE_FAMILY.BALLISTIC], color: 0x111111, particleColor: 0xff4b4b },
+        shock: { families: [DAMAGE_FAMILY.BALLISTIC], color: 0xf6d54a, particleColor: 0xfff06a },
+        freeze: { families: [DAMAGE_FAMILY.BALLISTIC], color: 0x808080, particleColor: 0x67b8ff },
+        acid: { families: [DAMAGE_FAMILY.BALLISTIC], color: 0x747474, particleColor: 0x66ff66 },
+        cluster: { families: [DAMAGE_FAMILY.EXPLOSIVE], color: 0x111111, particleColor: 0x999999 },
+        smoke: { families: [DAMAGE_FAMILY.EXPLOSIVE], color: 0x777777, particleColor: 0xb0b0b0 },
+        flash: { families: [DAMAGE_FAMILY.EXPLOSIVE], color: 0xf6f6f6, particleColor: 0xffffff }
+      };
+      const playerDefense = { en: 220, ballistic: 220, explosive: 220 };
+      const projectileParticles = [];
+      const statusParticles = [];
+      const statusLinks = [];
+      const acidMarks = [];
+      let playerShockDrainPending = 0;
+      let playerEnDrainPending = 0;
+      const playerFreezeStacks = [];
+      let playerPaRegenBlockedUntil = 0;
+      let minimapBlindUntil = 0;
+      let blackOutFullUntil = 0;
+      let blackOutRecoverUntil = 0;
+      let whiteOutFullUntil = 0;
+      let whiteOutRecoverUntil = 0;
     const bullets = [];
     const dashCooldownEnd = { w: 0, a: 0, s: 0, d: 0 };
 
@@ -2080,7 +2458,8 @@
           const sprinting = keys.shift && energyAvailable && !energyLock;
           const expansionBoost = expansionActive ? 2 : 1;
           const criticalSlow = now < apCriticalUntil ? 0.5 : 1;
-          const speed = moveSpeed * (sprinting ? 1.5 : 1) * expansionBoost * (energyLock ? 0.5 : 1) * criticalSlow;
+          const freezeSlow = getPlayerFreezeFactor(now);
+          const speed = moveSpeed * (sprinting ? 1.5 : 1) * expansionBoost * (energyLock ? 0.5 : 1) * criticalSlow * freezeSlow;
           direction.normalize().multiplyScalar(speed);
           player.velocity.x = direction.x;
           player.velocity.z = direction.z;
@@ -2171,12 +2550,299 @@
         }
       }
 
-      function applyDamage(amount) {
-        if (amount <= 0) return;
+      function normalizeDamagePacket(input, fallbackSubtype) {
+        if (typeof input === "number") {
+          return {
+            subtype: fallbackSubtype || DAMAGE_SUBTYPE.FLAME,
+            attacks: [{ family: DAMAGE_FAMILY.BALLISTIC, amount: Math.max(0, input), ignoreDefense: false }]
+          };
+        }
+        if (!input || !Array.isArray(input.attacks)) {
+          return {
+            subtype: fallbackSubtype || DAMAGE_SUBTYPE.FLAME,
+            attacks: [{ family: DAMAGE_FAMILY.BALLISTIC, amount: 0, ignoreDefense: false }]
+          };
+        }
+        return {
+          subtype: input.subtype || fallbackSubtype || DAMAGE_SUBTYPE.FLAME,
+          attacks: input.attacks
+            .filter((a) => a && typeof a.amount === "number")
+            .map((a) => ({
+              family: a.family || DAMAGE_FAMILY.BALLISTIC,
+              amount: Math.max(0, a.amount),
+              ignoreDefense: !!a.ignoreDefense
+            }))
+        };
+      }
+
+      function buildDamagePacket(baseDamage, subtype, override) {
+        const profile = ATTRIBUTE_PROFILE[subtype] || ATTRIBUTE_PROFILE.flame;
+        const families = profile.families || [DAMAGE_FAMILY.BALLISTIC];
+        const split = families.length > 0 ? baseDamage / families.length : baseDamage;
+        const attacks = families.map((family) => ({
+          family,
+          amount: Math.max(0, split),
+          ignoreDefense: !!(profile.ignoreDefense && profile.ignoreDefense.includes(family))
+        }));
+        const packet = {
+          subtype: subtype || DAMAGE_SUBTYPE.FLAME,
+          attacks
+        };
+        if (override) {
+          if (typeof override.scale === "number") {
+            packet.attacks = packet.attacks.map((a) => ({ ...a, amount: a.amount * override.scale }));
+          }
+          if (Array.isArray(override.families) && override.families.length > 0) {
+            const customSplit = baseDamage / override.families.length;
+            packet.attacks = override.families.map((family) => ({
+              family,
+              amount: Math.max(0, customSplit),
+              ignoreDefense: !!(override.ignoreDefense && override.ignoreDefense.includes(family))
+            }));
+          }
+          if (typeof override.subtype === "string") {
+            packet.subtype = override.subtype;
+          }
+        }
+        return packet;
+      }
+
+      function scaleDamagePacket(packet, scale) {
+        const normalized = normalizeDamagePacket(packet);
+        return {
+          subtype: normalized.subtype,
+          attacks: normalized.attacks.map((a) => ({
+            family: a.family,
+            amount: a.amount * scale,
+            ignoreDefense: a.ignoreDefense
+          }))
+        };
+      }
+
+      function resolveAttributeDamage(packetInput, defenseProfile) {
+        const packet = normalizeDamagePacket(packetInput);
+        const defense = defenseProfile || { en: 0, ballistic: 0, explosive: 0 };
+        let totalIncoming = 0;
+        let totalAfterDefense = 0;
+        for (const attack of packet.attacks) {
+          const incoming = Math.max(0, attack.amount);
+          totalIncoming += incoming;
+          if (incoming <= 0) continue;
+          if (attack.ignoreDefense) {
+            totalAfterDefense += incoming;
+            continue;
+          }
+          const def = defense[attack.family] || 0;
+          const effective = incoming - def;
+          if (effective > 0) {
+            totalAfterDefense += effective;
+          }
+        }
+        return {
+          subtype: packet.subtype,
+          incoming: totalIncoming,
+          damage: Math.max(0, totalAfterDefense),
+          blocked: totalIncoming > 0 && totalAfterDefense <= 0
+        };
+      }
+
+      function spawnProjectileParticle(position, color, size, life) {
+        const geo = new THREE.SphereGeometry(size || 0.035, 6, 6);
+        const mat = new THREE.MeshBasicMaterial({ color: color || 0xffffff, transparent: true, opacity: 0.9 });
+        const p = new THREE.Mesh(geo, mat);
+        p.position.copy(position);
+        p.userData.life = life || 0.22;
+        p.userData.startLife = p.userData.life;
+        scene.add(p);
+        projectileParticles.push(p);
+      }
+
+      function getPacketTotalDamage(packetInput) {
+        const packet = normalizeDamagePacket(packetInput);
+        let total = 0;
+        for (const attack of packet.attacks) total += Math.max(0, attack.amount || 0);
+        return total;
+      }
+
+      function playerHasActivePaShield() {
+        return !paCooldown && pa > 0;
+      }
+
+      function getPlayerFreezeFactor(now) {
+        for (let i = playerFreezeStacks.length - 1; i >= 0; i -= 1) {
+          if (playerFreezeStacks[i] <= now) playerFreezeStacks.splice(i, 1);
+        }
+        const stackCount = Math.min(10, playerFreezeStacks.length);
+        return Math.max(0.5, 1 - stackCount * 0.05);
+      }
+
+      function getEnemyFreezeFactor(enemy, now) {
+        if (!enemy.freezeStacks) enemy.freezeStacks = [];
+        for (let i = enemy.freezeStacks.length - 1; i >= 0; i -= 1) {
+          if (enemy.freezeStacks[i] <= now) enemy.freezeStacks.splice(i, 1);
+        }
+        const stackCount = Math.min(10, enemy.freezeStacks.length);
+        return Math.max(0.5, 1 - stackCount * 0.05);
+      }
+
+      function createStatusLink(a, b, color) {
+        const mat = new THREE.LineBasicMaterial({ color: color || 0xfff06a, transparent: true, opacity: 0.95 });
+        const geo = new THREE.BufferGeometry().setFromPoints([a.clone(), b.clone()]);
+        const line = new THREE.Line(geo, mat);
+        line.userData.life = 0.1;
+        line.userData.startLife = 0.1;
+        statusLinks.push(line);
+        scene.add(line);
+      }
+
+      function spawnStatusBurst(center, color, count, speed, life, mode) {
+        for (let i = 0; i < count; i += 1) {
+          const geo = new THREE.SphereGeometry(0.05 + Math.random() * 0.03, 6, 6);
+          const mat = new THREE.MeshBasicMaterial({ color, transparent: true, opacity: 0.95 });
+          const p = new THREE.Mesh(geo, mat);
+          p.position.copy(center);
+          const dir = new THREE.Vector3(Math.random() - 0.5, Math.random() - 0.1, Math.random() - 0.5).normalize();
+          const vel = dir.multiplyScalar((speed || 2) * (0.6 + Math.random() * 0.8));
+          p.userData.life = life || 1.2;
+          p.userData.startLife = p.userData.life;
+          p.userData.velocity = vel;
+          p.userData.mode = mode || "";
+          scene.add(p);
+          statusParticles.push(p);
+        }
+      }
+
+      function tryApplyShockChain(hitPos, sourceKind, sourceRef, packet) {
+        const chainPacket = scaleDamagePacket(packet, 0.1);
+        if (getPacketTotalDamage(chainPacket) <= 0) return;
+        if (sourceKind === "enemy") {
+          for (const enemy of enemies) {
+            if (enemy === sourceRef) continue;
+            if (enemy.mesh.position.distanceTo(hitPos) > 3) continue;
+            createStatusLink(hitPos, enemy.mesh.position, 0xfff06a);
+            applyEnemyDamage(enemy, chainPacket, { position: enemy.mesh.position.clone(), direct: false }, { skipStatus: true });
+          }
+          for (const block of destructibleBlocks) {
+            if (block.mesh.position.distanceTo(hitPos) > 3) continue;
+            createStatusLink(hitPos, block.mesh.position, 0xfff06a);
+            applyDestructibleDamage(block, chainPacket, { position: block.mesh.position.clone(), direct: false }, { skipStatus: true });
+          }
+        } else if (sourceKind === "player") {
+          for (const enemy of enemies) {
+            if (enemy.mesh.position.distanceTo(hitPos) > 3) continue;
+            createStatusLink(hitPos, enemy.mesh.position, 0xfff06a);
+            applyEnemyDamage(enemy, chainPacket, { position: enemy.mesh.position.clone(), direct: false }, { skipStatus: true });
+          }
+          for (const block of destructibleBlocks) {
+            if (block.mesh.position.distanceTo(hitPos) > 3) continue;
+            createStatusLink(hitPos, block.mesh.position, 0xfff06a);
+            applyDestructibleDamage(block, chainPacket, { position: block.mesh.position.clone(), direct: false }, { skipStatus: true });
+          }
+        }
+      }
+
+      function createAcidMark(targetKind, targetRef, worldPos, now, tickDamage) {
+        const mark = new THREE.Mesh(
+          new THREE.CircleGeometry(0.22, 16),
+          new THREE.MeshBasicMaterial({ color: 0x5cff66, transparent: true, opacity: 0.9, side: THREE.DoubleSide })
+        );
+        mark.rotation.x = -Math.PI / 2;
+        if (targetKind === "enemy" && targetRef && targetRef.mesh) {
+          const local = targetRef.mesh.worldToLocal(worldPos.clone());
+          mark.position.copy(local);
+          targetRef.mesh.add(mark);
+        } else {
+          const local = dummy.worldToLocal(worldPos.clone());
+          mark.position.copy(local);
+          dummy.add(mark);
+        }
+        acidMarks.push({
+          mesh: mark,
+          targetKind,
+          targetRef,
+          endAt: now + 5,
+          nextTickAt: now + 1,
+          tickDamage
+        });
+      }
+
+      function applyOnHitStatus(targetKind, targetRef, packetInput, result, hitInfo, options) {
+        if (options && options.skipStatus) return;
+        if (!result || result.incoming <= 0) return;
+        const packet = normalizeDamagePacket(packetInput);
+        const subtype = packet.subtype;
+        const now = performance.now() / 1000;
+        const hitPos = hitInfo?.position
+          ? hitInfo.position.clone()
+          : (targetKind === "enemy" ? targetRef.mesh.position.clone() : player.position.clone());
+        const totalDamage = getPacketTotalDamage(packet);
+
+        if (subtype === DAMAGE_SUBTYPE.SHOCK) {
+          spawnStatusBurst(hitPos, 0xfff06a, 18, 2.4, 0.9, "shock");
+          if (targetKind === "player" && !playerHasActivePaShield()) {
+            playerShockDrainPending += 8;
+          }
+          tryApplyShockChain(hitPos, targetKind, targetRef, packet);
+        }
+
+        if (subtype === DAMAGE_SUBTYPE.FREEZE) {
+          spawnStatusBurst(hitPos, 0x67b8ff, 14, 1.8, 1.2, "freeze");
+          if (targetKind === "player") {
+            playerFreezeStacks.push(now + 5);
+            if (!playerHasActivePaShield()) {
+              playerEnDrainPending += 8;
+            }
+          } else if (targetKind === "enemy" && targetRef) {
+            if (!targetRef.freezeStacks) targetRef.freezeStacks = [];
+            targetRef.freezeStacks.push(now + 5);
+          }
+        }
+
+        if (subtype === DAMAGE_SUBTYPE.ACID) {
+          const markPos = hitPos.clone();
+          createAcidMark(targetKind, targetRef, markPos, now, totalDamage * 0.1);
+          spawnStatusBurst(markPos, 0x6aff77, 8, 0.8, 1.4, "acid");
+          if (targetKind === "player") {
+            playerPaRegenBlockedUntil = Math.max(playerPaRegenBlockedUntil, now + 5);
+          }
+        }
+
+        if (subtype === DAMAGE_SUBTYPE.SMOKE) {
+          spawnStatusBurst(hitPos, 0x9f9f9f, 70, 3.4, 2.2, "smoke");
+          if (player.position.distanceTo(hitPos) <= 5) {
+            minimapBlindUntil = Math.max(minimapBlindUntil, now + 3);
+          }
+          if (hitInfo?.direct && targetKind === "player") {
+            blackOutFullUntil = Math.max(blackOutFullUntil, now + 2);
+            blackOutRecoverUntil = Math.max(blackOutRecoverUntil, now + 5);
+          }
+        }
+
+        if (subtype === DAMAGE_SUBTYPE.FLASH) {
+          spawnStatusBurst(hitPos, 0xffffff, 42, 3.8, 0.7, "flash");
+          const toFlash = hitPos.clone().sub(camera.position);
+          const dist = toFlash.length();
+          if (dist <= 20) {
+            toFlash.normalize();
+            const forward = new THREE.Vector3();
+            camera.getWorldDirection(forward);
+            if (forward.dot(toFlash) > 0.3) {
+              whiteOutFullUntil = Math.max(whiteOutFullUntil, now + 5);
+              whiteOutRecoverUntil = Math.max(whiteOutRecoverUntil, now + 10);
+            }
+          }
+        }
+      }
+
+      function applyDamage(amountOrPacket, hitInfo = null, options = null) {
         const now = performance.now() / 1000;
         hitRedUntil = now + 0.3;
-        let dmg = amount * damageScale;
-        if (dmg <= 0) {
+        const scaledPacket = typeof amountOrPacket === "number"
+          ? amountOrPacket * damageScale
+          : scaleDamagePacket(amountOrPacket, damageScale);
+        const result = resolveAttributeDamage(scaledPacket, playerDefense);
+        let dmg = result.damage;
+        if (result.incoming <= 0) {
           hitRedDamageUntil = 0;
           return;
         }
@@ -2187,6 +2853,10 @@
         if (now < paInvulnUntil) {
           hitRedDamageUntil = 0;
           return;
+        }
+        const damageLine = hitRed ? hitRed.querySelector("div:nth-child(2)") : null;
+        if (damageLine) {
+          damageLine.textContent = `DAMAGE ${Math.ceil(dmg)}`;
         }
         let tookDamage = false;
         if (!paCooldown && pa > 0) {
@@ -2205,7 +2875,8 @@
           tookDamage = true;
           hitRedDamageUntil = now + 0.3;
         } else {
-          hitRedDamageUntil = tookDamage ? now + 0.3 : 0;
+          if (damageLine) damageLine.textContent = "DAMAGE 0";
+          hitRedDamageUntil = result.blocked || tookDamage ? now + 0.3 : 0;
         }
         if (ap <= 1) {
           ap = 1;
@@ -2213,10 +2884,16 @@
           player.velocity.set(0, 0, 0);
           apCriticalUntil = now + 10;
         }
+        applyOnHitStatus("player", null, scaledPacket, result, hitInfo, options);
       }
 
-      function applyEnemyDamage(enemy, amount) {
-        let dmg = amount;
+      function applyEnemyDamage(enemy, amountOrPacket, hitInfo = null, options = null) {
+        const result = resolveAttributeDamage(amountOrPacket, enemy.defense);
+        let dmg = result.damage;
+        if (result.blocked && (!hitInfo || hitInfo.direct !== false)) {
+          spawnFloatingText(enemy.mesh.position, "HIT", "#ffffff");
+          spawnFloatingText(enemy.mesh.position, "DAMAGE 0", "#cfcfcf");
+        }
         if (enemy.pa > 0) {
           const usePa = Math.min(enemy.pa, dmg);
           enemy.pa -= usePa;
@@ -2227,9 +2904,10 @@
           enemy.ap = Math.max(0, enemy.ap - dmg);
           spawnFloatingText(enemy.mesh.position, `-AP ${Math.ceil(dmg)}`, "#ff8a8a");
         }
-        if (amount > 0) {
+        if (result.incoming > 0) {
           hitGreenUntil = performance.now() / 1000 + 0.3;
         }
+        applyOnHitStatus("enemy", enemy, amountOrPacket, result, hitInfo, options);
         if (enemy.ap <= 0) {
           scene.remove(enemy.mesh);
           if (enemy.label) enemy.label.remove();
@@ -2238,8 +2916,9 @@
         }
       }
 
-      function applyDestructibleDamage(block, amount) {
-        let dmg = amount;
+      function applyDestructibleDamage(block, amountOrPacket, hitInfo = null, options = null) {
+        const result = resolveAttributeDamage(amountOrPacket, block.defense);
+        let dmg = result.damage;
         if (block.pa > 0) {
           const usePa = Math.min(block.pa, dmg);
           block.pa -= usePa;
@@ -2248,7 +2927,7 @@
         if (dmg > 0) {
           block.ap = Math.max(0, block.ap - dmg);
         }
-        if (amount > 0) {
+        if (result.incoming > 0) {
           hitGreenUntil = performance.now() / 1000 + 0.3;
         }
         if (block.ap <= 0) {
@@ -2266,9 +2945,21 @@
           const allIdx = destructibleBlocks.indexOf(block);
           if (allIdx >= 0) destructibleBlocks.splice(allIdx, 1);
         }
+        if (!(options && options.skipStatus) && result.incoming > 0) {
+          const packet = normalizeDamagePacket(amountOrPacket);
+          if (packet.subtype === DAMAGE_SUBTYPE.SMOKE) {
+            const now = performance.now() / 1000;
+            const at = hitInfo?.position || block.mesh.position;
+            spawnStatusBurst(at.clone(), 0x9f9f9f, 70, 3.4, 2.2, "smoke");
+            if (player.position.distanceTo(at) <= 5) minimapBlindUntil = Math.max(minimapBlindUntil, now + 3);
+          }
+          if (packet.subtype === DAMAGE_SUBTYPE.FLASH) {
+            applyOnHitStatus("player", null, amountOrPacket, { incoming: 1, damage: 0 }, { position: hitInfo?.position || block.mesh.position, direct: false }, options);
+          }
+        }
       }
 
-      function createExplosionField(center, radius, dps, color) {
+      function createExplosionField(center, radius, dps, color, damagePacket) {
         const fxGeo = new THREE.SphereGeometry(0.6, 16, 16);
         const fxMat = new THREE.MeshStandardMaterial({ color, transparent: true, opacity: 0.9 });
         const fx = new THREE.Mesh(fxGeo, fxMat);
@@ -2277,6 +2968,7 @@
         fx.userData.startLife = 3;
         fx.userData.radius = radius;
         fx.userData.dps = dps;
+        fx.userData.damagePacket = damagePacket || buildDamagePacket(dps, DAMAGE_SUBTYPE.CLUSTER);
         explosionFields.push(fx);
         scene.add(fx);
       }
@@ -2298,28 +2990,76 @@
 
 
       function findSeptiaTarget(pos, range) {
-        for (const target of lockTargets) {
-          if (target.enemy && target.enemy.mesh.position.distanceTo(pos) <= range) {
-            return target.enemy;
-          }
-        }
         let best = null;
-        let bestDist = range * range;
-        let bestAp = Infinity;
-        let bestSpawn = Infinity;
+        let bestDist = Infinity;
         for (const enemy of enemies) {
           const d2 = enemy.mesh.position.distanceToSquared(pos);
-          if (d2 > bestDist) continue;
-          const ap = enemy.ap;
-          const spawn = enemy.spawnTime || 0;
-          if (!best || ap < bestAp || (ap === bestAp && spawn < bestSpawn)) {
+          if (!best || d2 < bestDist) {
             best = enemy;
-            bestAp = ap;
-            bestSpawn = spawn;
+            bestDist = d2;
+          }
+        }
+        for (const block of destructibleBlocks) {
+          const d2 = block.mesh.position.distanceToSquared(pos);
+          if (!best || d2 < bestDist) {
+            best = block;
             bestDist = d2;
           }
         }
         return best;
+      }
+
+      function isSeptiaTargetAlive(target) {
+        return !!(target && target.mesh && (enemies.includes(target) || destructibleBlocks.includes(target)));
+      }
+
+      function applySeptiaDamage(target, amount, hitPos) {
+        if (!target || amount <= 0) return;
+        if (enemies.includes(target)) {
+          applyEnemyDamage(target, amount, { position: hitPos || target.mesh.position.clone(), direct: true });
+          return;
+        }
+        if (destructibleBlocks.includes(target)) {
+          applyDestructibleDamage(target, amount, { position: hitPos || target.mesh.position.clone(), direct: true });
+        }
+      }
+
+      function segmentPointDistanceSquared(a, b, p) {
+        const ab = b.clone().sub(a);
+        const abLenSq = ab.lengthSq();
+        if (abLenSq <= 1e-8) return p.distanceToSquared(a);
+        const t = clamp(p.clone().sub(a).dot(ab) / abLenSq, 0, 1);
+        const closest = a.clone().addScaledVector(ab, t);
+        return p.distanceToSquared(closest);
+      }
+
+      function segmentIntersectsAABB(a, b, box) {
+        const dir = b.clone().sub(a);
+        let tMin = 0;
+        let tMax = 1;
+        const axes = [
+          { o: a.x, d: dir.x, min: box.minX, max: box.maxX },
+          { o: a.y, d: dir.y, min: box.minY, max: box.maxY },
+          { o: a.z, d: dir.z, min: box.minZ, max: box.maxZ }
+        ];
+        for (const axis of axes) {
+          if (Math.abs(axis.d) < 1e-8) {
+            if (axis.o < axis.min || axis.o > axis.max) return false;
+            continue;
+          }
+          const invD = 1 / axis.d;
+          let t1 = (axis.min - axis.o) * invD;
+          let t2 = (axis.max - axis.o) * invD;
+          if (t1 > t2) {
+            const tmp = t1;
+            t1 = t2;
+            t2 = tmp;
+          }
+          tMin = Math.max(tMin, t1);
+          tMax = Math.min(tMax, t2);
+          if (tMin > tMax) return false;
+        }
+        return tMax >= 0 && tMin <= 1;
       }
 
     function setActiveTab(name) {
@@ -2339,6 +3079,7 @@
 
     function toggleMenu() {
       paused = !paused;
+      document.body.classList.toggle("menu-open", paused);
       menuOverlay.classList.toggle("active", paused);
       menuOverlay.setAttribute("aria-hidden", paused ? "false" : "true");
       if (paused) {
@@ -2348,6 +3089,16 @@
         if (document.pointerLockElement === document.body) {
           document.exitPointerLock();
         }
+        keys.w = false;
+        keys.a = false;
+        keys.s = false;
+        keys.d = false;
+        keys.shift = false;
+        keys.space = false;
+        firingLeft = false;
+        firingRight = false;
+        armRaiseL = false;
+        armRaiseR = false;
       }
     }
 
@@ -2467,16 +3218,73 @@
     document.addEventListener("mousedown", (event) => {
       if (event.button === 0) armRaiseL = true;
       if (event.button === 2) armRaiseR = true;
+      if (event.button === 3) {
+        autoAimMode = !autoAimMode;
+        updateAimModeDisplay();
+        event.preventDefault();
+      }
+      if (event.button >= 4) {
+        setAimAssistMouseDownState(true);
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        event.stopPropagation();
+      }
     });
 
     document.addEventListener("mouseup", (event) => {
       if (event.button === 0) armRaiseL = false;
       if (event.button === 2) armRaiseR = false;
+      if (event.button >= 4) {
+        const nowSec = performance.now() / 1000;
+        // Ignore spurious side-button up events that fire right after down.
+        if (nowSec - aimAssistMouseDownAt < 0.14) {
+          aimAssistPendingRelease = true;
+        } else {
+          setAimAssistMouseDownState(false);
+        }
+        event.preventDefault();
+        event.stopImmediatePropagation();
+      }
     });
 
     document.addEventListener("contextmenu", (event) => {
       event.preventDefault();
     });
+    document.addEventListener("auxclick", (event) => {
+      if (event.button === 3 || event.button === 4) {
+        event.preventDefault();
+      }
+    });
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "BrowserForward" || event.key === "BrowserBack") {
+        aimAssistDownForwardKey = true;
+        syncAimAssistHoldState();
+        event.preventDefault();
+      }
+    });
+    document.addEventListener("keyup", (event) => {
+      if (event.key === "BrowserForward" || event.key === "BrowserBack") {
+        aimAssistDownForwardKey = false;
+        syncAimAssistHoldState();
+      }
+    });
+    window.addEventListener("blur", () => {
+      setAimAssistMouseDownState(false);
+      aimAssistDownForwardKey = false;
+      syncAimAssistHoldState();
+    });
+    window.addEventListener("mousedown", (event) => {
+      if (event.button >= 4) {
+        setAimAssistMouseDownState(true);
+        event.preventDefault();
+      }
+    }, true);
+    window.addEventListener("mouseup", (event) => {
+      if (event.button >= 4) {
+        setAimAssistMouseDownState(false);
+      }
+    }, true);
+    // Keep aim-assist state tied to Mouse5 hold state.
 
     document.addEventListener("mousedown", (event) => {
       if (event.button === 0) firingLeft = true;
@@ -2488,25 +3296,194 @@
     });
 
     function onMouseMove(event) {
+      const nowSec = performance.now() / 1000;
+      const sideBitsDown = (event.buttons & 24) !== 0;
+      if (aimAssistDownMouse5 && aimAssistPendingRelease) {
+        if (!sideBitsDown && (nowSec - aimAssistMouseDownAt) >= 0.14) {
+          setAimAssistMouseDownState(false);
+          aimAssistPendingRelease = false;
+        }
+      }
+      if (aimAssistHolding) return;
       const sensitivity = 0.002;
       yaw -= event.movementX * sensitivity;
       pitch -= event.movementY * sensitivity;
       pitch = clamp(pitch, -Math.PI / 2 + 0.05, Math.PI / 2 - 0.05);
     }
 
+      function initMobileControls() {
+        if (!isTouchDevice || !mobileControls || !mobileMoveZone || !mobileLookZone) return;
+
+        const moveState = { id: null, cx: 0, cy: 0, radius: 1 };
+        const lookState = { id: null, x: 0, y: 0, cx: 0, cy: 0, radius: 1 };
+
+        function setStickPosition(stick, dx, dy, radius) {
+          if (!stick) return;
+          const len = Math.hypot(dx, dy);
+          const limit = radius * 0.55;
+          let px = dx;
+          let py = dy;
+          if (len > limit) {
+            const scale = limit / len;
+            px *= scale;
+            py *= scale;
+          }
+          stick.style.transform = `translate(calc(-50% + ${px}px), calc(-50% + ${py}px))`;
+        }
+
+        function resetMove() {
+          keys.w = false;
+          keys.a = false;
+          keys.s = false;
+          keys.d = false;
+          setStickPosition(mobileMoveStick, 0, 0, moveState.radius);
+        }
+
+        function applyMove(dx, dy) {
+          const nx = dx / moveState.radius;
+          const ny = dy / moveState.radius;
+          const dead = 0.18;
+          keys.w = ny < -dead;
+          keys.s = ny > dead;
+          keys.a = nx < -dead;
+          keys.d = nx > dead;
+          setStickPosition(mobileMoveStick, dx, dy, moveState.radius);
+        }
+
+        function resetLook() {
+          lookState.id = null;
+          setStickPosition(mobileLookStick, 0, 0, lookState.radius);
+        }
+
+        function bindHoldButton(button, onStart, onEnd) {
+          if (!button) return;
+          let activeId = null;
+          button.addEventListener("pointerdown", (event) => {
+            event.preventDefault();
+            activeId = event.pointerId;
+            button.classList.add("active");
+            if (onStart) onStart();
+            if (button.setPointerCapture) button.setPointerCapture(event.pointerId);
+          });
+          const release = (event) => {
+            if (activeId === null || event.pointerId !== activeId) return;
+            activeId = null;
+            button.classList.remove("active");
+            if (onEnd) onEnd();
+          };
+          button.addEventListener("pointerup", release);
+          button.addEventListener("pointercancel", release);
+          button.addEventListener("lostpointercapture", release);
+        }
+
+        mobileMoveZone.addEventListener("pointerdown", (event) => {
+          if (moveState.id !== null) return;
+          event.preventDefault();
+          const rect = mobileMoveZone.getBoundingClientRect();
+          moveState.id = event.pointerId;
+          moveState.cx = rect.left + rect.width * 0.5;
+          moveState.cy = rect.top + rect.height * 0.5;
+          moveState.radius = rect.width * 0.5;
+          applyMove(event.clientX - moveState.cx, event.clientY - moveState.cy);
+          if (mobileMoveZone.setPointerCapture) mobileMoveZone.setPointerCapture(event.pointerId);
+        });
+        mobileMoveZone.addEventListener("pointermove", (event) => {
+          if (event.pointerId !== moveState.id) return;
+          event.preventDefault();
+          applyMove(event.clientX - moveState.cx, event.clientY - moveState.cy);
+        });
+        const releaseMove = (event) => {
+          if (event.pointerId !== moveState.id) return;
+          moveState.id = null;
+          resetMove();
+        };
+        mobileMoveZone.addEventListener("pointerup", releaseMove);
+        mobileMoveZone.addEventListener("pointercancel", releaseMove);
+        mobileMoveZone.addEventListener("lostpointercapture", releaseMove);
+
+        mobileLookZone.addEventListener("pointerdown", (event) => {
+          if (lookState.id !== null) return;
+          event.preventDefault();
+          const rect = mobileLookZone.getBoundingClientRect();
+          lookState.id = event.pointerId;
+          lookState.x = event.clientX;
+          lookState.y = event.clientY;
+          lookState.cx = rect.left + rect.width * 0.5;
+          lookState.cy = rect.top + rect.height * 0.5;
+          lookState.radius = rect.width * 0.5;
+          if (mobileLookZone.setPointerCapture) mobileLookZone.setPointerCapture(event.pointerId);
+        });
+        mobileLookZone.addEventListener("pointermove", (event) => {
+          if (event.pointerId !== lookState.id) return;
+          event.preventDefault();
+          const dx = event.clientX - lookState.x;
+          const dy = event.clientY - lookState.y;
+          lookState.x = event.clientX;
+          lookState.y = event.clientY;
+          const sensitivity = 0.0035;
+          yaw -= dx * sensitivity;
+          pitch -= dy * sensitivity;
+          pitch = clamp(pitch, -Math.PI / 2 + 0.05, Math.PI / 2 - 0.05);
+          setStickPosition(mobileLookStick, event.clientX - lookState.cx, event.clientY - lookState.cy, lookState.radius);
+        });
+        const releaseLook = (event) => {
+          if (event.pointerId !== lookState.id) return;
+          resetLook();
+        };
+        mobileLookZone.addEventListener("pointerup", releaseLook);
+        mobileLookZone.addEventListener("pointercancel", releaseLook);
+        mobileLookZone.addEventListener("lostpointercapture", releaseLook);
+
+        bindHoldButton(mobileJumpBtn, () => {
+          keys.space = true;
+          if (!energyLock) startJump();
+        }, () => {
+          keys.space = false;
+        });
+        bindHoldButton(mobileBoostBtn, () => {
+          keys.shift = true;
+        }, () => {
+          keys.shift = false;
+        });
+        bindHoldButton(mobileFireLBtn, () => {
+          armRaiseL = true;
+          firingLeft = true;
+        }, () => {
+          armRaiseL = false;
+          firingLeft = false;
+        });
+        bindHoldButton(mobileFireRBtn, () => {
+          armRaiseR = true;
+          firingRight = true;
+        }, () => {
+          armRaiseR = false;
+          firingRight = false;
+        });
+        if (mobileMenuBtn) {
+          mobileMenuBtn.addEventListener("click", (event) => {
+            event.preventDefault();
+            toggleMenu();
+          });
+        }
+      }
+      initMobileControls();
+
       document.body.addEventListener("click", () => {
+        if (isTouchDevice) return;
         if (paused) return;
         if (document.pointerLockElement !== document.body) {
           document.body.requestPointerLock();
         }
       });
       renderer.domElement.addEventListener("click", () => {
+        if (isTouchDevice) return;
         if (paused) return;
         if (document.pointerLockElement !== document.body) {
           document.body.requestPointerLock();
         }
       });
       window.addEventListener("mousedown", () => {
+        if (isTouchDevice) return;
         if (paused) return;
         if (document.pointerLockElement !== document.body) {
           document.body.requestPointerLock();
@@ -2870,6 +3847,26 @@
           }
         }
 
+        if (playerShockDrainPending > 0 && !playerHasActivePaShield()) {
+          const drain = Math.min(playerShockDrainPending, 6 * delta);
+          stamina = Math.max(0, stamina - drain);
+          playerShockDrainPending -= drain;
+          if (stamina <= 0) {
+            stamina = 0;
+            staminaCooldown = true;
+            staminaCooldownEnd = now + 10;
+          }
+        }
+        if (playerEnDrainPending > 0 && !playerHasActivePaShield()) {
+          const drain = Math.min(playerEnDrainPending, 6 * delta);
+          en = Math.max(0, en - drain);
+          playerEnDrainPending -= drain;
+          if (en <= 0) {
+            en = 0;
+            enCooldown = true;
+          }
+        }
+
         staminaFill.style.width = `${stamina.toFixed(1)}%`;
         staminaFill.style.background = staminaCooldown ? "#ff4b4b" : "#ffd93d";
         if (enFill) {
@@ -2903,6 +3900,9 @@
       function animate() {
         const delta = Math.min(clock.getDelta(), 0.033);
         const now = performance.now() / 1000;
+        const sensoryBlind = now < blackOutFullUntil || now < whiteOutFullUntil;
+        const effectiveAutoAim = autoAimMode && !sensoryBlind;
+        updateAimModeDisplay(sensoryBlind);
         frameNow = now;
         const playerRoomIndex = getRoomIndexForPos(player.position);
         applyMovement(delta);
@@ -2921,6 +3921,11 @@
           ctx.clip();
           ctx.fillStyle = "rgba(6,6,10,0.8)";
           ctx.fillRect(0, 0, size, size);
+          if (now < minimapBlindUntil) {
+            ctx.fillStyle = "rgba(0,0,0,0.98)";
+            ctx.fillRect(0, 0, size, size);
+            ctx.restore();
+          } else {
           const radiusUnits = 5 * cellSize;
           const scale = size / (radiusUnits * 2);
           const centerX = size / 2;
@@ -3041,6 +4046,7 @@
           ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
           ctx.fill();
           ctx.restore();
+          }
         }
 
         const forward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
@@ -3077,7 +4083,7 @@
             available.userData.timer = 0;
             available.userData.hitCount = 0;
             available.userData.nextHit = 1;
-            available.userData.hitLimit = septiaExpanded ? 12 : 6;
+            available.userData.hitLimit = septiaExpanded ? 6 : 3;
             available.userData.nextHitAt = now + 1;
             available.userData.attackStartAt = now;
             available.userData.engageUntil = now + available.userData.hitLimit;
@@ -3147,17 +4153,32 @@
             d.userData.timer += delta;
             const t = d.userData.timer;
             const baseWorld = septiaGroup.localToWorld(basePos.clone());
-            const target = d.userData.target;
+            let target = d.userData.target;
             const limit = d.userData.hitLimit || 6;
-            const targetAlive = !!(target && target.mesh && enemies.includes(target));
+            let targetAlive = isSeptiaTargetAlive(target);
             const engageUntil = d.userData.engageUntil || (now + limit);
             const attackWindow = now < engageUntil && d.userData.hitCount < limit;
             if (!d.userData.worldPos) {
               d.userData.worldPos = baseWorld.clone();
             }
+            if (attackWindow && !targetAlive) {
+              const seekFrom = d.userData.worldPos ? d.userData.worldPos.clone() : baseWorld.clone();
+              const retarget = findSeptiaTarget(seekFrom, 150);
+              if (isSeptiaTargetAlive(retarget)) {
+                d.userData.target = retarget;
+                target = retarget;
+                targetAlive = true;
+                d.userData.nextHitAt = Math.min(d.userData.nextHitAt || (now + 1), now + 0.12);
+              } else {
+                d.userData.target = null;
+                target = null;
+              }
+            }
             if (attackWindow) {
               if (targetAlive) {
                 d.userData.worldPos.lerp(target.mesh.position, Math.min(1, 14 * delta));
+              } else {
+                d.userData.worldPos.lerp(baseWorld, Math.min(1, 3.2 * delta));
               }
             } else {
               d.userData.worldPos.lerp(baseWorld, Math.min(1, 3.2 * delta));
@@ -3166,7 +4187,7 @@
             d.position.copy(localPos);
             if (targetAlive && now >= (d.userData.nextHitAt || (now + 1)) && d.userData.hitCount < limit) {
               if (target) {
-                applyEnemyDamage(target, septiaExpanded ? 650 : 500);
+                applySeptiaDamage(target, septiaExpanded ? 325 : 250, target.mesh.position.clone());
               }
               d.userData.hitCount += 1;
               d.userData.nextHit += 1;
@@ -3224,7 +4245,8 @@
           const desired = enemy.moveTarget.clone();
           const toTarget = desired.sub(enemyPos);
           if (toTarget.lengthSq() > 0.0001) {
-            const moveStep = Math.min(enemyMoveSpeed * delta, toTarget.length());
+            const freezeFactor = getEnemyFreezeFactor(enemy, now);
+            const moveStep = Math.min(enemyMoveSpeed * freezeFactor * delta, toTarget.length());
             toTarget.normalize().multiplyScalar(moveStep);
             enemyPos.add(toTarget);
           }
@@ -3247,7 +4269,7 @@
             enemy.label.style.left = `${x}px`;
             enemy.label.style.top = `${y}px`;
             enemy.label.style.transform = "translate(-50%, -100%)";
-            enemy.label.style.display = labelPos.z < 1 ? "block" : "none";
+            enemy.label.style.display = (!sensoryBlind && labelPos.z < 1) ? "block" : "none";
             enemy.label.classList.toggle("locked", enemy === lockTarget);
           }
 
@@ -3267,23 +4289,60 @@
 
           if (targeting && now >= enemy.nextBall && dist <= 10) {
             const dir = player.position.clone().sub(enemyPos).normalize();
-            const ball = new THREE.Mesh(
-              new THREE.SphereGeometry(0.12, 12, 12),
-              new THREE.MeshStandardMaterial({ color: enemy.baseColor, emissive: enemy.baseColor, emissiveIntensity: 0.5 })
-            );
+            const ballSubtype = enemy.ballSubtype || DAMAGE_SUBTYPE.PULSE;
+            const ballProfile = ATTRIBUTE_PROFILE[ballSubtype] || ATTRIBUTE_PROFILE.pulse;
+            let ball;
+            if (ballSubtype === DAMAGE_SUBTYPE.SHOCK || ballSubtype === DAMAGE_SUBTYPE.FREEZE) {
+              ball = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.05, 0.05, 0.5, 10),
+                new THREE.MeshStandardMaterial({
+                  color: ballProfile.color || enemy.baseColor,
+                  emissive: ballProfile.particleColor || ballProfile.color || enemy.baseColor,
+                  emissiveIntensity: 0.45
+                })
+              );
+              const up = new THREE.Vector3(0, 1, 0);
+              ball.quaternion.setFromUnitVectors(up, dir);
+            } else if (ballSubtype === DAMAGE_SUBTYPE.ACID) {
+              const group = new THREE.Group();
+              const outer = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.08, 0.08, 0.55, 12),
+                new THREE.MeshStandardMaterial({ color: 0x7a7a7a, transparent: true, opacity: 0.45 })
+              );
+              const inner = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.04, 0.04, 0.5, 12),
+                new THREE.MeshStandardMaterial({ color: 0x50ff6a, emissive: 0x50ff6a, emissiveIntensity: 0.55 })
+              );
+              group.add(outer, inner);
+              const up = new THREE.Vector3(0, 1, 0);
+              group.quaternion.setFromUnitVectors(up, dir);
+              ball = group;
+            } else {
+              ball = new THREE.Mesh(
+                new THREE.SphereGeometry(ballSubtype === DAMAGE_SUBTYPE.SMOKE ? 0.16 : 0.12, 12, 12),
+                new THREE.MeshStandardMaterial({
+                  color: ballProfile.color || enemy.baseColor,
+                  emissive: ballProfile.color || enemy.baseColor,
+                  emissiveIntensity: 0.55
+                })
+              );
+            }
             ball.position.copy(enemyPos).addScaledVector(dir, enemyRadius + 0.2);
             ball.userData.velocity = dir.clone().multiplyScalar(6);
             ball.userData.life = 5;
             const dmg = Math.max(500, 1000 - (dist / 10) * 500);
-            ball.userData.damage = dmg;
+            ball.userData.damagePacket = buildDamagePacket(dmg, ballSubtype);
+            ball.userData.subtype = ballSubtype;
             scene.add(ball);
             enemyProjectiles.push(ball);
             enemy.nextBall = now + 5;
           }
 
           if (targeting && now >= enemy.nextBeam) {
-            applyDamage(7500);
-            const beamMat = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const beamSubtype = enemy.beamSubtype || DAMAGE_SUBTYPE.LASER;
+            applyDamage(buildDamagePacket(7500, beamSubtype), { position: player.position.clone(), direct: true });
+            const beamColor = ATTRIBUTE_PROFILE[beamSubtype]?.color || 0xffffff;
+            const beamMat = new THREE.LineBasicMaterial({ color: beamColor });
             const beamGeo = new THREE.BufferGeometry().setFromPoints([enemyPos.clone(), player.position.clone()]);
             const beam = new THREE.Line(beamGeo, beamMat);
             beam.userData.life = 0.3;
@@ -3339,64 +4398,100 @@
           }
         }
 
-        // Lock-on: pick up to 13 enemies inside large circle
-        const centerX = window.innerWidth / 2;
-        const centerY = window.innerHeight / 2;
-        const radiusPx = 320;
-        const circleDrift = -cameraRoll * 420;
-        lockCircleOffset += (circleDrift - lockCircleOffset) * Math.min(1, 7 * delta);
-        if (lockCircleLarge) {
-          lockCircleLarge.style.transform = `translate(-50%, -50%) translate(${lockCircleOffset}px, 0px)`;
-        }
-        const candidates = [];
-        const lockCandidates = [];
-        for (const candidate of enemies) {
-          lockCandidates.push({ obj: candidate, pos: candidate.mesh.position });
-        }
-        for (const block of destructibleBlocks) {
-          lockCandidates.push({ obj: block, pos: block.mesh.position });
-        }
-        for (const candidate of lockCandidates) {
-          const pos = candidate.pos.clone().project(camera);
-          if (pos.z > 1) continue;
-          const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
-          const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
-          const dx = x - (centerX + lockCircleOffset);
-          const dy = y - centerY;
-          const d2 = dx * dx + dy * dy;
-          if (d2 <= radiusPx * radiusPx) {
-            candidates.push({ target: candidate.obj, x, y, d2 });
+        // Lock-on: pick up to 13 enemies inside large circle (auto mode only)
+        let count = 0;
+        if (effectiveAutoAim) {
+          const centerX = window.innerWidth / 2;
+          const centerY = window.innerHeight / 2;
+          const radiusPx = 320;
+          const circleDrift = -cameraRoll * 420;
+          lockCircleOffset += (circleDrift - lockCircleOffset) * Math.min(1, 7 * delta);
+          if (lockCircleLarge) {
+            lockCircleLarge.style.display = "block";
+            lockCircleLarge.style.transform = `translate(-50%, -50%) translate(${lockCircleOffset}px, 0px)`;
           }
-        }
-        candidates.sort((a, b) => a.d2 - b.d2);
-        lockTargets.length = 0;
-        const count = Math.min(13, candidates.length);
-        for (let i = 0; i < count; i += 1) {
-          lockTargets.push(candidates[i]);
-        }
-        if (count > 0) {
-          lockTarget = lockTargets[0].target;
-          lockTargetUntil = now + 1.5;
-        } else if (now > lockTargetUntil) {
+          const candidates = [];
+          const lockCandidates = [];
+          for (const candidate of enemies) {
+            lockCandidates.push({ obj: candidate, pos: candidate.mesh.position });
+          }
+          for (const block of destructibleBlocks) {
+            lockCandidates.push({ obj: block, pos: block.mesh.position });
+          }
+          for (const candidate of lockCandidates) {
+            const pos = candidate.pos.clone().project(camera);
+            if (pos.z > 1) continue;
+            const x = (pos.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-pos.y * 0.5 + 0.5) * window.innerHeight;
+            const dx = x - (centerX + lockCircleOffset);
+            const dy = y - centerY;
+            const d2 = dx * dx + dy * dy;
+            if (d2 <= radiusPx * radiusPx) {
+              candidates.push({ target: candidate.obj, x, y, d2 });
+            }
+          }
+          candidates.sort((a, b) => a.d2 - b.d2);
+          lockTargets.length = 0;
+          count = Math.min(13, candidates.length);
+          for (let i = 0; i < count; i += 1) {
+            lockTargets.push(candidates[i]);
+          }
+          if (count > 0) {
+            lockTarget = lockTargets[0].target;
+            lockTargetUntil = now + 1.5;
+          } else if (now > lockTargetUntil) {
+            lockTarget = null;
+          }
+          for (let i = 0; i < lockCircles.length; i += 1) {
+            const el = lockCircles[i];
+            if (i < count) {
+              const t = lockTargets[i];
+              el.style.display = "block";
+              el.style.left = `${t.x}px`;
+              el.style.top = `${t.y}px`;
+              el.style.transform = "translate(-50%, -50%)";
+              const targetPos = t.target.mesh.position.clone();
+              const inRange = targetPos.distanceTo(player.position) <= 150;
+              const color = inRange ? "rgba(255, 90, 90, 0.9)" : "rgba(255, 255, 255, 0.9)";
+              const glow = inRange ? "0 0 8px rgba(255, 90, 90, 0.6)" : "0 0 8px rgba(255, 255, 255, 0.6)";
+              el.style.borderColor = color;
+              el.style.boxShadow = glow;
+            } else {
+              el.style.display = "none";
+            }
+          }
+        } else {
+          lockTargets.length = 0;
           lockTarget = null;
-        }
-        for (let i = 0; i < lockCircles.length; i += 1) {
-          const el = lockCircles[i];
-          if (i < count) {
-            const t = lockTargets[i];
-            el.style.display = "block";
-            el.style.left = `${t.x}px`;
-            el.style.top = `${t.y}px`;
-            el.style.transform = "translate(-50%, -50%)";
-            const targetPos = t.target.mesh.position.clone();
-            const inRange = targetPos.distanceTo(player.position) <= 150;
-            const color = inRange ? "rgba(255, 90, 90, 0.9)" : "rgba(255, 255, 255, 0.9)";
-            const glow = inRange ? "0 0 8px rgba(255, 90, 90, 0.6)" : "0 0 8px rgba(255, 255, 255, 0.6)";
-            el.style.borderColor = color;
-            el.style.boxShadow = glow;
-          } else {
-            el.style.display = "none";
+          if (lockCircleLarge) lockCircleLarge.style.display = "none";
+          for (let i = 0; i < lockCircles.length; i += 1) {
+            lockCircles[i].style.display = "none";
           }
+        }
+
+        const aimAssistActive = aimAssistHolding;
+        if (aimAssistActive) {
+          const centerX = window.innerWidth * 0.5;
+          const centerY = window.innerHeight * 0.5;
+          const targetAlive = !!(
+            aimAssistTarget &&
+            aimAssistTarget.mesh &&
+            (enemies.includes(aimAssistTarget) || destructibleBlocks.includes(aimAssistTarget))
+          );
+          const inRange = targetAlive
+            ? isTargetInAimAssistRange(aimAssistTarget, effectiveAutoAim, centerX, centerY, lockCircleOffset)
+            : false;
+          if (aimAssistAcquirePending || !targetAlive || !inRange) {
+            aimAssistTarget = findAimAssistTarget(effectiveAutoAim, centerX, centerY, lockCircleOffset);
+            aimAssistAcquirePending = false;
+          }
+          if (aimAssistTarget) {
+            const adjusted = applyAimAssist(aimAssistTarget, delta, true);
+            if (adjusted) updateCamera();
+          }
+        } else {
+          aimAssistAcquirePending = false;
+          aimAssistTarget = null;
         }
 
         if (!paused) {
@@ -3412,10 +4507,11 @@
             const sides = [];
             if (firingLeft && !reloadingLeft && magLeft > 0) sides.push(-0.34);
             if (firingRight && !reloadingRight && magRight > 0) sides.push(0.34);
-            const rainbow = [0xff3b3b, 0xff9f1c, 0xffe66d, 0x8cff6b, 0x4ecdc4, 0x5f9bff, 0x8a6bff, 0xff6bd4, 0xff5d5d, 0xffb45d, 0xfff05d, 0x7aff9e, 0x4dd6ff];
             for (const side of sides) {
-              const pelletCount = 13;
               const isLeft = side < 0;
+              const pelletCount = 13;
+              const subtype = isLeft ? DAMAGE_SUBTYPE.LASER : DAMAGE_SUBTYPE.FLAME;
+              const profile = ATTRIBUTE_PROFILE[subtype] || ATTRIBUTE_PROFILE.flame;
               const origin = new THREE.Vector3();
               if (isLeft) {
                 gunLeft.getWorldPosition(origin);
@@ -3426,10 +4522,11 @@
               }
               const pelletSpeed = 160;
               const pelletLife = 125;
-              const pelletSize = isLeft ? 0.02 : 0.64;
+              const pelletSize = isLeft ? 0.02 : 0.16;
               for (let i = 0; i < pelletCount; i += 1) {
-                const spreadYaw = (Math.random() - 0.5) * 0.08;
-                const spreadPitch = (Math.random() - 0.5) * 0.08;
+                const isCenterPellet = i === 0;
+                const spreadYaw = isCenterPellet ? 0 : (Math.random() - 0.5) * 0.08;
+                const spreadPitch = isCenterPellet ? 0 : (Math.random() - 0.5) * 0.08;
                 const dir = new THREE.Vector3(
                   -Math.sin(yaw + spreadYaw) * Math.cos(pitch + spreadPitch),
                   Math.sin(pitch + spreadPitch),
@@ -3438,7 +4535,7 @@
                 const bulletGeo = isLeft
                   ? new THREE.CylinderGeometry(0.02, 0.02, 2.4, 8)
                   : new THREE.BoxGeometry(pelletSize, pelletSize, pelletSize);
-                const color = isLeft ? rainbow[i % rainbow.length] : 0x111111;
+                const color = profile.color || 0x111111;
                 const bulletMat = isLeft
                   ? new THREE.MeshStandardMaterial({
                     color,
@@ -3459,13 +4556,38 @@
                 bullet.userData.life = pelletLife;
                 bullet.userData.range = 150;
                 bullet.userData.travel = 0;
-                bullet.userData.damage = 1000;
+                if (isLeft) {
+                  bullet.userData.damagePacket = buildDamagePacket(1000, subtype);
+                } else {
+                  bullet.userData.damagePacket = {
+                    subtype: DAMAGE_SUBTYPE.FLAME,
+                    attacks: [{ family: DAMAGE_FAMILY.BALLISTIC, amount: 1000, ignoreDefense: false }]
+                  };
+                }
                 bullet.userData.explosionDamage = 500;
+                bullet.userData.explosionPacket = isLeft
+                  ? buildDamagePacket(500, DAMAGE_SUBTYPE.CLUSTER)
+                  : {
+                    subtype: DAMAGE_SUBTYPE.FLAME,
+                    attacks: [{ family: DAMAGE_FAMILY.BALLISTIC, amount: 500, ignoreDefense: false }]
+                  };
                 bullet.userData.explosionRadius = 2;
                 bullet.userData.color = color;
                 bullet.userData.isBeam = isLeft;
                 bullet.userData.hitRadius = isLeft ? 0.2 : pelletSize * 0.6;
                 bullet.userData.lockIndex = i;
+                bullet.userData.subtype = subtype;
+                if (aimAssistActive && aimAssistTarget) {
+                  bullet.userData.homingTarget = aimAssistTarget;
+                  bullet.userData.assistFocus = true;
+                } else if (effectiveAutoAim && lockTargets.length > 0) {
+                  const initTarget = lockTargets[i % lockTargets.length];
+                  bullet.userData.homingTarget = initTarget ? initTarget.target : null;
+                  bullet.userData.assistFocus = false;
+                } else {
+                  bullet.userData.homingTarget = null;
+                  bullet.userData.assistFocus = false;
+                }
                 scene.add(bullet);
                 bullets.push(bullet);
               }
@@ -3483,40 +4605,79 @@
 
         for (let i = bullets.length - 1; i >= 0; i -= 1) {
           const b = bullets[i];
-          if (lockTargets.length > 0) {
-            const target = lockTargets[b.userData.lockIndex % lockTargets.length];
-            if (target && target.target) {
-              const targetEnemy = target.target;
-              const targetPos = targetEnemy.mesh.position.clone();
-              const targetVel = targetEnemy.velocity ? targetEnemy.velocity.clone() : new THREE.Vector3();
-              const speed = Math.max(1, b.userData.velocity.length());
-              const leadTime = Math.min(0.55, b.position.distanceTo(targetPos) / speed);
-              const predicted = targetPos.addScaledVector(targetVel, leadTime);
-              const desired = predicted.sub(b.position).normalize();
-              const current = b.userData.velocity.clone().normalize();
-              const steerPower = b.userData.isBeam ? 0.5 : 0.38;
-              const steer = current.lerp(desired, steerPower).normalize();
-              b.userData.velocity.copy(steer.multiplyScalar(b.userData.velocity.length()));
+          const bulletPacket = b.userData.damagePacket || buildDamagePacket(0, b.userData.subtype || DAMAGE_SUBTYPE.FLAME);
+          const bulletProfile = ATTRIBUTE_PROFILE[b.userData.subtype] || ATTRIBUTE_PROFILE.flame;
+          let homingTarget = b.userData.homingTarget;
+          const homingAlive = !!(homingTarget && homingTarget.mesh && (enemies.includes(homingTarget) || destructibleBlocks.includes(homingTarget)));
+          if (!homingAlive) {
+            b.userData.homingTarget = null;
+            homingTarget = null;
+            if (b.userData.assistFocus) {
+              const assistAlive = !!(
+                aimAssistTarget &&
+                aimAssistTarget.mesh &&
+                (enemies.includes(aimAssistTarget) || destructibleBlocks.includes(aimAssistTarget))
+              );
+              if (assistAlive) {
+                homingTarget = aimAssistTarget;
+                b.userData.homingTarget = aimAssistTarget;
+              }
+            } else if (effectiveAutoAim && lockTargets.length > 0) {
+              let best = null;
+              let bestD2 = Infinity;
+              for (const t of lockTargets) {
+                if (!t || !t.target || !t.target.mesh) continue;
+                const d2 = t.target.mesh.position.distanceToSquared(b.position);
+                if (d2 < bestD2) {
+                  best = t.target;
+                  bestD2 = d2;
+                }
+              }
+              if (best) {
+                homingTarget = best;
+                b.userData.homingTarget = best;
+              }
             }
           }
+          if (homingTarget && homingTarget.mesh) {
+            const targetPos = homingTarget.mesh.position.clone();
+            const targetVel = homingTarget.velocity ? homingTarget.velocity.clone() : new THREE.Vector3();
+            const speed = Math.max(1, b.userData.velocity.length());
+            const targetDist = b.position.distanceTo(targetPos);
+            const leadTime = Math.min(0.45, targetDist / speed);
+            const predicted = targetPos.addScaledVector(targetVel, leadTime);
+            const toPredicted = predicted.sub(b.position);
+            if (toPredicted.lengthSq() > 1e-8) {
+              const desired = toPredicted.normalize();
+              const current = b.userData.velocity.clone().normalize();
+              const nearBoost = targetDist < 3 ? 1 : (targetDist < 8 ? 0.75 : 0.5);
+              const steerPower = b.userData.isBeam ? nearBoost : nearBoost * 0.85;
+              const steer = current.lerp(desired, steerPower).normalize();
+              b.userData.velocity.copy(steer.multiplyScalar(speed));
+            }
+          }
+          const prevPos = b.position.clone();
           const stepDist = b.userData.velocity.length() * delta;
           b.position.addScaledVector(b.userData.velocity, delta);
           b.userData.life -= delta;
           b.userData.travel = (b.userData.travel || 0) + stepDist;
+          if ((bulletProfile.families || []).includes(DAMAGE_FAMILY.EN)) {
+            const offset = new THREE.Vector3((Math.random() - 0.5) * 0.18, (Math.random() - 0.5) * 0.18, (Math.random() - 0.5) * 0.18);
+            spawnProjectileParticle(b.position.clone().add(offset), bulletProfile.particleColor || b.userData.color, 0.032, 0.2);
+          } else if (bulletProfile.particleColor && Math.random() < 0.55) {
+            spawnProjectileParticle(b.position.clone(), bulletProfile.particleColor, 0.03, 0.16);
+          }
           let hit = false;
           const roomsHere = getRoomsForPos(b.position);
-          if (roomsHere.length === 0) {
+          const roomsPrev = getRoomsForPos(prevPos);
+          if (roomsHere.length === 0 && roomsPrev.length === 0) {
             hit = true;
           } else {
-            for (const room of roomsHere) {
+            for (const room of rooms) {
               for (const box of room.blockBoxes) {
-                if (
-                  b.position.x >= box.minX && b.position.x <= box.maxX &&
-                  b.position.y >= box.minY && b.position.y <= box.maxY &&
-                  b.position.z >= box.minZ && b.position.z <= box.maxZ
-                ) {
+                if (segmentIntersectsAABB(prevPos, b.position, box)) {
                   if (box.destructible) {
-                    applyDestructibleDamage(box.destructible, b.userData.damage || 0);
+                    applyDestructibleDamage(box.destructible, bulletPacket, { position: b.position.clone(), direct: true });
                   }
                   hit = true;
                   break;
@@ -3527,9 +4688,11 @@
           }
           if (!hit) {
             const hitRadius = b.userData.hitRadius || 0.2;
+            const hitRadiusSq = (enemyRadius + hitRadius) * (enemyRadius + hitRadius);
             for (const enemy of enemies) {
-              if (enemy.mesh.position.distanceTo(b.position) <= enemyRadius + hitRadius) {
-                applyEnemyDamage(enemy, b.userData.damage || 0);
+              const d2 = segmentPointDistanceSquared(prevPos, b.position, enemy.mesh.position);
+              if (d2 <= hitRadiusSq) {
+                applyEnemyDamage(enemy, bulletPacket, { position: b.position.clone(), direct: true });
                 hit = true;
                 break;
               }
@@ -3537,7 +4700,36 @@
           }
           if (hit) {
             const fxColor = b.userData.color || 0xffffff;
-            createExplosionField(b.position.clone(), b.userData.explosionRadius || 2, b.userData.explosionDamage || 0, fxColor);
+            if (b.userData.explosionDamage > 0) {
+              createExplosionField(
+                b.position.clone(),
+                b.userData.explosionRadius || 2,
+                b.userData.explosionDamage || 0,
+                fxColor,
+                b.userData.explosionPacket || buildDamagePacket(b.userData.explosionDamage || 0, DAMAGE_SUBTYPE.CLUSTER)
+              );
+            }
+            const onHitExplosion = bulletProfile.onHitExplosion;
+            if (onHitExplosion) {
+              const extraScale = typeof onHitExplosion.scale === "number" ? onHitExplosion.scale : 0.4;
+              const extraPacket = buildDamagePacket(
+                (bulletPacket.attacks || []).reduce((sum, a) => sum + (a.amount || 0), 0) * extraScale,
+                b.userData.subtype || DAMAGE_SUBTYPE.PLASMA,
+                {
+                  families: onHitExplosion.subtype === DAMAGE_SUBTYPE.KOJIMA
+                    ? [DAMAGE_FAMILY.BALLISTIC, DAMAGE_FAMILY.EXPLOSIVE]
+                    : [DAMAGE_FAMILY.EN, DAMAGE_FAMILY.EXPLOSIVE],
+                  ignoreDefense: onHitExplosion.subtype === DAMAGE_SUBTYPE.KOJIMA ? [DAMAGE_FAMILY.BALLISTIC] : []
+                }
+              );
+              createExplosionField(
+                b.position.clone(),
+                onHitExplosion.radius || 2.2,
+                (bulletPacket.attacks || []).reduce((sum, a) => sum + (a.amount || 0), 0) * extraScale,
+                bulletProfile.particleColor || fxColor,
+                extraPacket
+              );
+            }
             scene.remove(b);
             bullets.splice(i, 1);
             continue;
@@ -3560,8 +4752,18 @@
           if (p.userData.velocity) {
             p.position.addScaledVector(p.userData.velocity, delta);
             p.userData.life -= delta;
+            const pProfile = ATTRIBUTE_PROFILE[p.userData.subtype] || ATTRIBUTE_PROFILE.pulse;
+            if ((pProfile.families || []).includes(DAMAGE_FAMILY.EN) && Math.random() < 0.9) {
+              const wobble = new THREE.Vector3((Math.random() - 0.5) * 0.14, (Math.random() - 0.5) * 0.14, (Math.random() - 0.5) * 0.14);
+              spawnProjectileParticle(p.position.clone().add(wobble), pProfile.particleColor || pProfile.color, 0.028, 0.18);
+            } else if (p.userData.subtype === DAMAGE_SUBTYPE.SHOCK || p.userData.subtype === DAMAGE_SUBTYPE.FREEZE) {
+              if (Math.random() < 0.8) {
+                const wobble = new THREE.Vector3((Math.random() - 0.5) * 0.16, (Math.random() - 0.5) * 0.16, (Math.random() - 0.5) * 0.16);
+                spawnProjectileParticle(p.position.clone().add(wobble), pProfile.particleColor || pProfile.color, 0.03, 0.22);
+              }
+            }
             if (p.position.distanceTo(player.position) <= playerHalf + 0.12) {
-              applyDamage(p.userData.damage || 500);
+              applyDamage(p.userData.damagePacket || 500, { position: p.position.clone(), direct: true });
               scene.remove(p);
               enemyProjectiles.splice(i, 1);
               continue;
@@ -3601,20 +4803,117 @@
           const radius = fx.userData.radius || 2;
           const dps = fx.userData.dps || 0;
           if (dps > 0) {
+            const packetPerTick = scaleDamagePacket(
+              fx.userData.damagePacket || buildDamagePacket(dps, DAMAGE_SUBTYPE.CLUSTER),
+              delta
+            );
             for (const enemy of enemies) {
               if (enemy.mesh.position.distanceTo(fx.position) <= radius) {
-                applyEnemyDamage(enemy, dps * delta);
+                applyEnemyDamage(enemy, packetPerTick, { position: fx.position.clone(), direct: false });
               }
             }
             for (const block of destructibleBlocks) {
               if (block.mesh.position.distanceTo(fx.position) <= radius) {
-                applyDestructibleDamage(block, dps * delta);
+                applyDestructibleDamage(block, packetPerTick, { position: fx.position.clone(), direct: false });
               }
             }
           }
           if (fx.userData.life <= 0) {
             scene.remove(fx);
             explosionFields.splice(i, 1);
+          }
+        }
+
+        for (let i = projectileParticles.length - 1; i >= 0; i -= 1) {
+          const p = projectileParticles[i];
+          p.userData.life -= delta;
+          const ratio = Math.max(0, p.userData.life / p.userData.startLife);
+          p.material.opacity = 0.9 * ratio;
+          p.scale.setScalar(1 + (1 - ratio) * 1.25);
+          if (p.userData.life <= 0) {
+            scene.remove(p);
+            projectileParticles.splice(i, 1);
+          }
+        }
+
+        for (let i = statusLinks.length - 1; i >= 0; i -= 1) {
+          const link = statusLinks[i];
+          link.userData.life -= delta;
+          const ratio = Math.max(0, link.userData.life / link.userData.startLife);
+          link.material.opacity = 0.95 * ratio;
+          if (link.userData.life <= 0) {
+            scene.remove(link);
+            statusLinks.splice(i, 1);
+          }
+        }
+
+        for (let i = statusParticles.length - 1; i >= 0; i -= 1) {
+          const p = statusParticles[i];
+          p.userData.life -= delta;
+          const mode = p.userData.mode || "";
+          if (p.userData.velocity) {
+            p.position.addScaledVector(p.userData.velocity, delta);
+            p.userData.velocity.multiplyScalar(0.985);
+          }
+          const ratio = Math.max(0, p.userData.life / p.userData.startLife);
+          p.material.opacity = 0.95 * ratio;
+          if (mode === "smoke") {
+            p.userData.velocity.y += 0.2 * delta;
+            if (p.position.distanceTo(player.position) <= playerHalf + 0.32) {
+              minimapBlindUntil = Math.max(minimapBlindUntil, now + 3);
+              p.userData.life = 0;
+            }
+          } else {
+            p.userData.velocity.y -= 0.25 * delta;
+          }
+          if (mode === "shock" && !playerHasActivePaShield() && p.position.distanceTo(player.position) <= playerHalf + 0.22) {
+            stamina = Math.max(0, stamina - 1);
+            if (stamina <= 0) {
+              stamina = 0;
+              staminaCooldown = true;
+              staminaCooldownEnd = now + 10;
+            }
+            p.userData.life = 0;
+          }
+          if (mode === "freeze" && !playerHasActivePaShield() && p.position.distanceTo(player.position) <= playerHalf + 0.22) {
+            en = Math.max(0, en - 1);
+            if (en <= 0) {
+              en = 0;
+              enCooldown = true;
+            }
+            p.userData.life = 0;
+          }
+          if (p.userData.life <= 0) {
+            scene.remove(p);
+            statusParticles.splice(i, 1);
+          }
+        }
+
+        for (let i = acidMarks.length - 1; i >= 0; i -= 1) {
+          const mark = acidMarks[i];
+          const ttl = mark.endAt - now;
+          mark.mesh.material.opacity = Math.max(0, Math.min(1, ttl / 5));
+          if (now >= mark.nextTickAt) {
+            mark.nextTickAt += 1;
+            const tick = Math.max(0, mark.tickDamage || 0);
+            if (mark.targetKind === "player") {
+              if (now < mark.endAt) playerPaRegenBlockedUntil = Math.max(playerPaRegenBlockedUntil, mark.endAt);
+              if (!paCooldown && pa > 0) {
+                pa = Math.max(0, pa - tick);
+              } else {
+                ap = Math.max(1, ap - tick * 1.25);
+              }
+            } else if (mark.targetKind === "enemy" && mark.targetRef && enemies.includes(mark.targetRef)) {
+              if (mark.targetRef.pa > 0) {
+                mark.targetRef.pa = Math.max(0, mark.targetRef.pa - tick);
+              } else {
+                mark.targetRef.ap = Math.max(0, mark.targetRef.ap - tick * 1.25);
+              }
+            }
+          }
+          if (now >= mark.endAt || (mark.targetKind === "enemy" && (!mark.targetRef || !enemies.includes(mark.targetRef)))) {
+            if (mark.mesh.parent) mark.mesh.parent.remove(mark.mesh);
+            acidMarks.splice(i, 1);
           }
         }
 
@@ -3768,6 +5067,26 @@
         if (expansionOverlay) {
           expansionOverlay.style.opacity = now < expansionActiveUntil ? "1" : "0";
         }
+        if (statusBlackOverlay) {
+          let blackOpacity = 0;
+          if (now < blackOutFullUntil) {
+            blackOpacity = 1;
+          } else if (now < blackOutRecoverUntil) {
+            const t = (now - blackOutFullUntil) / Math.max(0.001, blackOutRecoverUntil - blackOutFullUntil);
+            blackOpacity = 1 - Math.min(1, Math.max(0, t));
+          }
+          statusBlackOverlay.style.opacity = `${blackOpacity}`;
+        }
+        if (statusWhiteOverlay) {
+          let whiteOpacity = 0;
+          if (now < whiteOutFullUntil) {
+            whiteOpacity = 1;
+          } else if (now < whiteOutRecoverUntil) {
+            const t = (now - whiteOutFullUntil) / Math.max(0.001, whiteOutRecoverUntil - whiteOutFullUntil);
+            whiteOpacity = 1 - Math.min(1, Math.max(0, t));
+          }
+          statusWhiteOverlay.style.opacity = `${whiteOpacity}`;
+        }
         if (expansionCooldownEl) {
           const cooldownLeft = Math.max(0, expansionCooldownEnd - now);
           const ratio = Math.min(1, cooldownLeft / 50);
@@ -3788,14 +5107,17 @@
           paCooldown = true;
           paCooldownEnd = now + 50;
         }
-        if (paCooldown) {
-          pa = Math.min(paMax, pa + 528 * delta);
-          if (pa >= paMax) {
-            pa = paMax;
-            paCooldown = false;
+        const paRegenBlocked = now < playerPaRegenBlockedUntil;
+        if (!paRegenBlocked) {
+          if (paCooldown) {
+            pa = Math.min(paMax, pa + 528 * delta);
+            if (pa >= paMax) {
+              pa = paMax;
+              paCooldown = false;
+            }
+          } else {
+            pa = Math.min(paMax, pa + 132 * delta);
           }
-        } else {
-          pa = Math.min(paMax, pa + 132 * delta);
         }
 
         if (now < expansionActiveUntil) {
