@@ -1934,7 +1934,7 @@
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff0a0, emissive: 0xffaa55, roughness: 0.2 });
 
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 1.7, 8, 16), bodyMat);
-        body.rotation.z = 0;
+        body.rotation.set(Math.PI / 2, 0, 0);
         body.position.set(0, 0.25, 0.1);
         body.scale.set(1, 1, 0.62);
 
@@ -2060,7 +2060,7 @@
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff58f, emissive: 0xffd84a, roughness: 0.25 });
 
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 2.35, 8, 16), furMat);
-        body.rotation.z = 0;
+        body.rotation.set(Math.PI / 2, 0, 0);
         body.position.set(0, 0.36, 0.08);
         body.scale.set(0.82, 0.95, 0.5);
         const chest = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), furMat);
@@ -2265,7 +2265,7 @@
         const plateMat = new THREE.MeshStandardMaterial({ color: 0x2d7fd0, roughness: 0.5, metalness: 0.4 });
         const hornMat = new THREE.MeshStandardMaterial({ color: 0xb8e2ff, emissive: 0x3a6ea8, roughness: 0.35, metalness: 0.25 });
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 2.8, 8, 16), scaleMat);
-        body.rotation.z = 0;
+        body.rotation.set(Math.PI / 2, 0, 0);
         body.position.set(0, 0.52, 0.2);
         const torsoPlate = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.34, 1.8), plateMat);
         torsoPlate.position.set(0, 0.68, 0.18);
@@ -4936,7 +4936,9 @@
       }
       if (entryType === "item_core" || entryType === "codex_core") {
         const coreClass = getCoreIconClass(baseName || "");
-        const unlocked = isBossCoreName(baseName) ? bossCoreCodexUnlocked[baseName] : true;
+        const unlocked = isBossCoreName(baseName)
+          ? (entryType === "item_core" ? bossCoreInventory[baseName] > 0 : bossCoreCodexUnlocked[baseName])
+          : true;
         detailIconEl.classList.add("coreModel");
         if (!unlocked) detailIconEl.classList.add("coreLocked");
         if (coreClass) detailIconEl.classList.add(coreClass);
@@ -5002,7 +5004,7 @@
 
     function getEntryDisplayDesc(entryType, baseName, baseDesc) {
       if (entryType === "item_core" && isBossCoreName(baseName)) {
-        if (!bossCoreCodexUnlocked[baseName]) return "-";
+        if (bossCoreInventory[baseName] <= 0) return "-";
         return `${baseDesc} 현재 보유 수량: ${bossCoreInventory[baseName]}`;
       }
       if (entryType === "codex_core" && isBossCoreName(baseName)) {
@@ -5022,7 +5024,9 @@
         const baseName = entry.dataset.baseName || entry.dataset.name || "항목";
         const entryType = entry.dataset.entryType || "generic";
         const baseDesc = entry.dataset.baseDesc || "";
-        const unlocked = isBossCoreName(baseName) ? bossCoreCodexUnlocked[baseName] : true;
+        const unlocked = isBossCoreName(baseName)
+          ? (entryType === "item_core" ? bossCoreInventory[baseName] > 0 : bossCoreCodexUnlocked[baseName])
+          : true;
         const bossUnlocked = entryType === "codex_boss" ? isCodexBossUnlocked(baseName) : true;
         if (entryType === "item_core") {
           entry.style.display = unlocked ? "" : "none";
