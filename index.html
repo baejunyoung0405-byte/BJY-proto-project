@@ -2037,8 +2037,6 @@
       let aimAssistAcquirePending = false;
       let aimAssistDownMouse5 = false;
       let aimAssistDownForwardKey = false;
-      let aimAssistMouseDownAt = 0;
-      let aimAssistPendingRelease = false;
       let hitGreenUntil = 0;
       let hitRedUntil = 0;
       let hitRedDamageUntil = 0;
@@ -2073,7 +2071,6 @@
         aimAssistAcquirePending = false;
         aimAssistTarget = null;
         aimAssistBoostUntil = 0;
-        aimAssistPendingRelease = false;
       }
 
       function syncAimAssistHoldState() {
@@ -2088,11 +2085,12 @@
       function setAimAssistMouseDownState(isDown) {
         if (aimAssistDownMouse5 === isDown) return;
         aimAssistDownMouse5 = isDown;
-        if (isDown) {
-          aimAssistMouseDownAt = performance.now() / 1000;
-          aimAssistPendingRelease = false;
-        }
         syncAimAssistHoldState();
+      }
+
+      function syncAimAssistMouse5FromButtons(buttonMask) {
+        const sideDown = (buttonMask & 24) !== 0;
+        setAimAssistMouseDownState(sideDown);
       }
 
       function getTargetScreenPos(target) {
@@ -3224,7 +3222,10 @@
         event.preventDefault();
       }
       if (event.button >= 4) {
-        setAimAssistMouseDownState(true);
+        syncAimAssistMouse5FromButtons(event.buttons);
+        if ((event.buttons & 24) === 0) {
+          setAimAssistMouseDownState(true);
+        }
         event.preventDefault();
         event.stopImmediatePropagation();
         event.stopPropagation();
@@ -3235,11 +3236,8 @@
       if (event.button === 0) armRaiseL = false;
       if (event.button === 2) armRaiseR = false;
       if (event.button >= 4) {
-        const nowSec = performance.now() / 1000;
-        // Ignore spurious side-button up events that fire right after down.
-        if (nowSec - aimAssistMouseDownAt < 0.14) {
-          aimAssistPendingRelease = true;
-        } else {
+        syncAimAssistMouse5FromButtons(event.buttons);
+        if ((event.buttons & 24) === 0) {
           setAimAssistMouseDownState(false);
         }
         event.preventDefault();
@@ -3275,13 +3273,19 @@
     });
     window.addEventListener("mousedown", (event) => {
       if (event.button >= 4) {
-        setAimAssistMouseDownState(true);
+        syncAimAssistMouse5FromButtons(event.buttons);
+        if ((event.buttons & 24) === 0) {
+          setAimAssistMouseDownState(true);
+        }
         event.preventDefault();
       }
     }, true);
     window.addEventListener("mouseup", (event) => {
       if (event.button >= 4) {
-        setAimAssistMouseDownState(false);
+        syncAimAssistMouse5FromButtons(event.buttons);
+        if ((event.buttons & 24) === 0) {
+          setAimAssistMouseDownState(false);
+        }
       }
     }, true);
     // Keep aim-assist state tied to Mouse5 hold state.
@@ -3296,13 +3300,9 @@
     });
 
     function onMouseMove(event) {
-      const nowSec = performance.now() / 1000;
       const sideBitsDown = (event.buttons & 24) !== 0;
-      if (aimAssistDownMouse5 && aimAssistPendingRelease) {
-        if (!sideBitsDown && (nowSec - aimAssistMouseDownAt) >= 0.14) {
-          setAimAssistMouseDownState(false);
-          aimAssistPendingRelease = false;
-        }
+      if (sideBitsDown !== aimAssistDownMouse5) {
+        setAimAssistMouseDownState(sideBitsDown);
       }
       if (aimAssistHolding) return;
       const sensitivity = 0.002;
