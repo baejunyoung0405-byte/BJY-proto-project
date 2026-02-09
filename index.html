@@ -829,13 +829,16 @@
       border-radius: 50%;
       border: 1px solid rgba(255, 255, 255, 0.38);
       box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
-      display: grid;
-      place-items: center;
-      font-size: 20px;
-      line-height: 1;
-      text-shadow: 0 0 8px rgba(0, 0, 0, 0.35);
+      display: flex;
+      align-items: center;
+      justify-content: center;
     }
-    .bossSig::before { content: "?"; }
+    .bossSig svg {
+      width: 78%;
+      height: 78%;
+      fill: rgba(255, 255, 255, 0.92);
+      filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.35));
+    }
     .gridIcon.boss-phoenix .bossSig { background: linear-gradient(135deg, #ffcc9c, #ff5f38 68%, #7f2017); }
     .gridIcon.boss-liger .bossSig { background: linear-gradient(135deg, #fff3ad, #ffd83f 68%, #7f6718); }
     .gridIcon.boss-hyunmu .bossSig { background: linear-gradient(135deg, #cbffcf, #4fd676 68%, #1f6c38); }
@@ -844,14 +847,6 @@
     .detailIconLarge.boss-liger .bossSig { background: linear-gradient(135deg, #fff3ad, #ffd83f 68%, #7f6718); }
     .detailIconLarge.boss-hyunmu .bossSig { background: linear-gradient(135deg, #cbffcf, #4fd676 68%, #1f6c38); }
     .detailIconLarge.boss-dragoon .bossSig { background: linear-gradient(135deg, #cde9ff, #53abff 68%, #1f4f84); }
-    .gridIcon.boss-phoenix .bossSig::before { content: "🕊"; }
-    .gridIcon.boss-liger .bossSig::before { content: "🐯"; }
-    .gridIcon.boss-hyunmu .bossSig::before { content: "🐢"; }
-    .gridIcon.boss-dragoon .bossSig::before { content: "🐉"; }
-    .detailIconLarge.boss-phoenix .bossSig::before { content: "🕊"; }
-    .detailIconLarge.boss-liger .bossSig::before { content: "🐯"; }
-    .detailIconLarge.boss-hyunmu .bossSig::before { content: "🐢"; }
-    .detailIconLarge.boss-dragoon .bossSig::before { content: "🐉"; }
     .detailIconLarge.bossModel .bossSig {
       width: 68px;
       height: 68px;
@@ -4927,6 +4922,22 @@
       return "";
     }
 
+    function buildBossGlyphSvg(name) {
+      if (name.includes("피닉스")) {
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 10l6 8 10 4-7 4-3 7-6-5-6 5-3-7-7-4 10-4zM20 38l12 4 12-4-5 10H25z"/></svg>`;
+      }
+      if (name.includes("라이거")) {
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 38l6-12 8-2 4-6 8 2 4 6 6 2 4 10-6 8H20zM24 46h6l-3 6zM34 46h6l-3 6z"/></svg>`;
+      }
+      if (name.includes("현무")) {
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 30l8-8h12l8 8-2 12-10 8H30l-10-8zM14 32l-4 2 4 2zM50 32l4 2-4 2zM30 18l2-6 2 6zM30 52l2 4 2-4z"/></svg>`;
+      }
+      if (name.includes("드라군")) {
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 42l8-10 10-2 8-10 10 2-6 8 10 4-8 2-6 10-12-2-8 6z"/></svg>`;
+      }
+      return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="12"/></svg>`;
+    }
+
     function buildEntryIconHtml(entryType, name, iconBaseClass = "gridIcon") {
       if (entryType === "item_core" || entryType === "codex_core") {
         const coreClass = getCoreIconClass(name || "");
@@ -4934,7 +4945,7 @@
       }
       if (entryType === "codex_boss") {
         const bossClass = getBossIconClass(name || "");
-        return `<div class="${iconBaseClass} bossModel ${bossClass}"><div class="bossSig"></div></div>`;
+        return `<div class="${iconBaseClass} bossModel ${bossClass}"><div class="bossSig">${buildBossGlyphSvg(name || "")}</div></div>`;
       }
       return `<div class="${iconBaseClass}"></div>`;
     }
@@ -4950,7 +4961,7 @@
         detailIconEl.classList.add("bossModel");
         if (!unlocked) detailIconEl.classList.add("locked");
         if (bossClass) detailIconEl.classList.add(bossClass);
-        detailIconEl.innerHTML = `<div class="bossSig"></div>`;
+        detailIconEl.innerHTML = `<div class="bossSig">${buildBossGlyphSvg(baseName || "")}</div>`;
         return;
       }
       if (entryType === "item_core" || entryType === "codex_core") {
