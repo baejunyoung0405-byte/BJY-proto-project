@@ -2431,6 +2431,41 @@
         }
       }
 
+      function emitBossTertiarySignatureEffect(boss, now) {
+        if (!boss.aggro) return;
+        if (now < (boss.nextTertiaryFxAt || 0)) return;
+        const subtype = getBossTertiarySubtype(boss);
+        const profileColor = ATTRIBUTE_PROFILE[subtype]?.particleColor || ATTRIBUTE_PROFILE[subtype]?.color || boss.baseColor;
+        const origin = boss.mesh.position.clone().add(new THREE.Vector3(0, 0.9, 0));
+        if (subtype === DAMAGE_SUBTYPE.CLUSTER) {
+          spawnStatusBurst(origin, profileColor, 20, 2.4, 0.6, "boss-trail");
+          for (let i = 0; i < 10; i += 1) {
+            const a = (Math.PI * 2 * i) / 10;
+            const p = origin.clone().add(new THREE.Vector3(Math.cos(a) * 0.8, (Math.random() - 0.5) * 0.5, Math.sin(a) * 0.8));
+            spawnProjectileParticle(p, profileColor, 0.05, 0.5);
+          }
+          boss.nextTertiaryFxAt = now + 0.65;
+        } else if (subtype === DAMAGE_SUBTYPE.FLASH) {
+          spawnBossTelegraphCircle(boss.mesh.position.clone(), 3.6, profileColor, 0.22);
+          spawnStatusBurst(origin, profileColor, 26, 2.8, 0.45, "flash");
+          boss.nextTertiaryFxAt = now + 0.75;
+        } else if (subtype === DAMAGE_SUBTYPE.SMOKE) {
+          spawnStatusBurst(origin, profileColor, 22, 2.6, 1.15, "smoke");
+          for (let i = 0; i < 8; i += 1) {
+            const p = origin.clone().add(new THREE.Vector3((Math.random() - 0.5) * 1.2, Math.random() * 0.7, (Math.random() - 0.5) * 1.2));
+            spawnProjectileParticle(p, 0xb0b0b0, 0.08, 0.8);
+          }
+          boss.nextTertiaryFxAt = now + 0.7;
+        } else if (subtype === DAMAGE_SUBTYPE.PULSE) {
+          spawnBossTelegraphCircle(boss.mesh.position.clone(), 4.0, profileColor, 0.24);
+          spawnStatusBurst(origin, profileColor, 20, 3.1, 0.5, "freeze");
+          boss.nextTertiaryFxAt = now + 0.62;
+        } else {
+          spawnStatusBurst(origin, profileColor, 12, 1.8, 0.4, "boss-trail");
+          boss.nextTertiaryFxAt = now + 0.8;
+        }
+      }
+
       function getRoomBounds(roomIndex) {
         const room = rooms[roomIndex];
         const margin = enemyRadius + 0.4;
@@ -2581,6 +2616,7 @@
           ultimatePulseIndex: 0,
           nextAuraAt: now + 0.06,
           nextTrailAt: now + 0.08,
+          nextTertiaryFxAt: now + 0.35,
           nextMeleeAt: now + 0.9,
           nextMoveSkillAt: now + 1.35,
           nextRangedAt: now + 1.1,
@@ -5665,6 +5701,7 @@
           boss.mesh.rotation.y += yawDiff * Math.min(1, 4.5 * delta);
           animateBossModel(boss, now, delta);
           emitBossAmbientEffects(boss, now);
+          emitBossTertiarySignatureEffect(boss, now);
 
           if (boss.core) {
             const shielding = now < boss.shieldUntil;
