@@ -1393,7 +1393,6 @@
     const roomSize = roomCells * cellSize;
     const roomHeight = 3 * cellSize;
     const half = roomSize / 2;
-    const worldHalf = roomSize + half;
     const playerSize = 1;
     const playerHalf = playerSize / 2;
     const floorY = playerHalf;
@@ -1621,9 +1620,11 @@
       { x: -offset * 2, z: 0, openings: { n: false, s: false, w: true, e: true } }
     ];
 
-    const roomColors = [0xffffff, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff, 0x111111, 0x111111, 0x111111, 0x111111];
+    const roomColors = [0xffffff, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff, 0x7a7a7a, 0x7a7a7a, 0x7a7a7a, 0x7a7a7a];
       const roomSeeds = [101, 202, 303, 404, 505, 606, 707, 808, 909];
       let destructibleBlocks = [];
+    const worldHalfX = Math.max(...rooms.map((room) => Math.abs(room.x))) + half;
+    const worldHalfZ = Math.max(...rooms.map((room) => Math.abs(room.z))) + half;
 
     // Maze blocks removed per request.
 
@@ -2511,8 +2512,8 @@
 
       resolveVertical(next.y);
 
-      player.position.x = clamp(player.position.x, -worldHalf + playerHalf, worldHalf - playerHalf);
-      player.position.z = clamp(player.position.z, -worldHalf + playerHalf, worldHalf - playerHalf);
+      player.position.x = clamp(player.position.x, -worldHalfX + playerHalf, worldHalfX - playerHalf);
+      player.position.z = clamp(player.position.z, -worldHalfZ + playerHalf, worldHalfZ - playerHalf);
 
       if (player.position.y <= floorY) {
         player.position.y = floorY;
