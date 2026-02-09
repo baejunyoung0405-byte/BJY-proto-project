@@ -1621,6 +1621,12 @@
 
     const roomColors = [0xffffff, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff, 0x7a7a7a, 0x7a7a7a, 0x7a7a7a, 0x7a7a7a];
     const roomGridColors = [0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff];
+    const roomDisplayNames = {
+      5: "피닉스 레어",
+      6: "라이거 레어",
+      7: "현무 레어",
+      8: "청룡 레어"
+    };
       const roomSeeds = [101, 202, 303, 404, 505, 606, 707, 808, 909];
       let destructibleBlocks = [];
     const worldHalfX = Math.max(...rooms.map((room) => Math.abs(room.x))) + half;
@@ -4031,6 +4037,18 @@
           ctx.beginPath();
           ctx.arc(centerX, centerY, 3, 0, Math.PI * 2);
           ctx.fill();
+          const roomName = roomDisplayNames[playerRoomIndex];
+          if (roomName) {
+            ctx.globalAlpha = 1;
+            ctx.font = "700 14px 'Segoe UI', 'Malgun Gothic', sans-serif";
+            ctx.textAlign = "center";
+            ctx.textBaseline = "bottom";
+            ctx.fillStyle = "rgba(240,240,240,0.95)";
+            ctx.strokeStyle = "rgba(0,0,0,0.85)";
+            ctx.lineWidth = 3;
+            ctx.strokeText(roomName, centerX, size - 8);
+            ctx.fillText(roomName, centerX, size - 8);
+          }
           ctx.restore();
           }
         }
