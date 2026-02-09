@@ -1019,6 +1019,7 @@
     <h1>화이트 큐브 룸 (필드 11 x 11)</h1>
     <p><span class="key">W</span> 전면 이동 · <span class="key">A</span> 좌면 이동 · <span class="key">S</span> 후면 이동 · <span class="key">D</span> 우면 이동</p>
     <p><span class="key">Space</span> 점프 · <span class="key">마우스</span> 시점 변경</p>
+    <p><span class="key">F</span> 상호작용(보스 알 근처 1초 홀드로 부활)</p>
     <p>화면을 클릭하면 마우스가 고정됩니다. ESC로 해제됩니다.</p>
   </div>
     <div id="minimap" aria-hidden="true"><canvas id="minimapCanvas"></canvas></div>
@@ -1188,6 +1189,7 @@
         <div id="tab-controls" class="menuSection active">
           <p><strong>조작법</strong></p>
           <p>이동: W/A/S/D · 시점: 마우스 · 점프: Space</p>
+          <p>상호작용: F(홀드) · 보스 알 근처에서 1초 홀드 시 부활</p>
           <p>체공/비행: Shift 유지 · Shift+W로 전방 비행 가속</p>
           <p>대쉬: Shift+Space 상태에서 W/A/S/D, 셀 윙 중에는 자원 소모 없음</p>
           <p>에임 보정: 마우스5(사이드 버튼) 누르는 동안만 보정, 떼면 즉시 해제</p>
@@ -1756,6 +1758,8 @@
       ];
       const enemies = [];
       const bosses = [];
+      const bossCoreDrops = [];
+      const bossEggs = [];
       const enemyProjectiles = [];
       const enemyBeams = [];
       const bossTelegraphs = [];
@@ -2406,8 +2410,75 @@
           nextUltimateAt: now + 20,
           meleePatternIndex: 0,
           movePatternIndex: 0,
-          rangedPatternIndex: 0
+          rangedPatternIndex: 0,
+          bossType: type
         });
+      }
+
+      function createBossCoreDrop(boss) {
+        const coreColor = boss.baseColor ? boss.baseColor.getHex() : 0xffffff;
+        const mesh = new THREE.Mesh(
+          new THREE.OctahedronGeometry(0.24, 1),
+          new THREE.MeshStandardMaterial({ color: coreColor, emissive: coreColor, emissiveIntensity: 0.7, roughness: 0.28, metalness: 0.35 })
+        );
+        mesh.position.copy(boss.mesh.position).add(new THREE.Vector3(0, 0.45, 0));
+        scene.add(mesh);
+        const label = document.createElement("div");
+        label.className = "enemyLabel";
+        label.textContent = `${boss.name} 코어`;
+        document.body.appendChild(label);
+        bossCoreDrops.push({
+          mesh,
+          label,
+          roomIndex: boss.roomIndex,
+          name: `${boss.name} 코어`,
+          bornAt: performance.now() / 1000
+        });
+      }
+
+      function removeBossEgg(egg) {
+        if (!egg) return;
+        scene.remove(egg.mesh);
+        const idx = bossEggs.indexOf(egg);
+        if (idx >= 0) bossEggs.splice(idx, 1);
+      }
+
+      function createBossEgg(roomIndex, bossType, bossName, colorHex) {
+        const existing = bossEggs.find((e) => e.roomIndex === roomIndex);
+        if (existing) {
+          removeBossEgg(existing);
+        }
+        const room = rooms[roomIndex];
+        if (!room) return;
+        const shell = new THREE.Mesh(
+          new THREE.SphereGeometry(0.48, 20, 16),
+          new THREE.MeshStandardMaterial({ color: 0xe8e8e8, roughness: 0.45, metalness: 0.1 })
+        );
+        shell.scale.set(0.75, 1.05, 0.75);
+        const coreGlow = new THREE.Mesh(
+          new THREE.SphereGeometry(0.25, 16, 12),
+          new THREE.MeshStandardMaterial({ color: colorHex || 0xffffff, emissive: colorHex || 0xffffff, emissiveIntensity: 0.6, transparent: true, opacity: 0.75 })
+        );
+        coreGlow.position.y = 0.02;
+        const eggGroup = new THREE.Group();
+        eggGroup.add(shell, coreGlow);
+        eggGroup.position.set(room.x, floorY + 0.42, room.z);
+        scene.add(eggGroup);
+        bossEggs.push({
+          mesh: eggGroup,
+          roomIndex,
+          bossType,
+          bossName,
+          holdTime: 0
+        });
+      }
+
+      function reviveBossFromEgg(egg) {
+        if (!egg || !egg.bossType) return;
+        spawnStatusBurst(egg.mesh.position.clone(), egg.bossType.color || 0xffffff, 40, 3.6, 1.2, "boss-revive");
+        createExplosionField(egg.mesh.position.clone(), 2.6, 0, egg.bossType.color || 0xffffff, buildDamagePacket(0, egg.bossType.ballSubtype || DAMAGE_SUBTYPE.PULSE));
+        removeBossEgg(egg);
+        spawnBoss(egg.bossType);
       }
 
       bossTypes.forEach((type) => {
@@ -2473,7 +2544,7 @@
 
     let yaw = 0;
     let pitch = 0;
-    const keys = { w: false, a: false, s: false, d: false, shift: false, space: false };
+    const keys = { w: false, a: false, s: false, d: false, shift: false, space: false, f: false };
     const isTouchDevice = window.matchMedia("(pointer: coarse)").matches || ("ontouchstart" in window) || navigator.maxTouchPoints > 0;
     const uiPanel = document.getElementById("ui");
     const hint = document.getElementById("hint");
@@ -3527,6 +3598,13 @@
         }
         applyOnHitStatus("enemy", boss, amountOrPacket, result, hitInfo, options);
         if (boss.ap <= 0) {
+          createBossCoreDrop(boss);
+          createBossEgg(
+            boss.roomIndex,
+            boss.bossType || bossTypes.find((t) => t.roomIndex === boss.roomIndex),
+            boss.name,
+            boss.baseColor ? boss.baseColor.getHex() : 0xffffff
+          );
           scene.remove(boss.mesh);
           if (boss.label) boss.label.remove();
           const idx = bosses.indexOf(boss);
@@ -3865,6 +3943,7 @@
         keys.d = false;
         keys.shift = false;
         keys.space = false;
+        keys.f = false;
         firingLeft = false;
         firingRight = false;
         armRaiseL = false;
@@ -3892,6 +3971,7 @@
             kitHoldStart = performance.now();
           }
       }
+      if (event.code === "KeyF") keys.f = true;
       if (event.code === "KeyW") keys.w = true;
       if (event.code === "KeyA") keys.a = true;
       if (event.code === "KeyS") keys.s = true;
@@ -3974,6 +4054,7 @@
           kitHolding = false;
           kitHoldStart = null;
         }
+      if (event.code === "KeyF") keys.f = false;
       if (event.code === "KeyW") keys.w = false;
       if (event.code === "KeyA") keys.a = false;
       if (event.code === "KeyS") keys.s = false;
@@ -5242,6 +5323,43 @@
             threatDirs.push({ x: localX, z: localZ });
           }
         }
+
+        for (let i = bossCoreDrops.length - 1; i >= 0; i -= 1) {
+          const core = bossCoreDrops[i];
+          core.mesh.rotation.y += delta * 1.8;
+          core.mesh.position.y += Math.sin(now * 3 + i) * 0.002;
+          if (core.label) {
+            const labelPos = core.mesh.position.clone().add(new THREE.Vector3(0, 0.45, 0));
+            labelPos.project(camera);
+            const x = (labelPos.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-labelPos.y * 0.5 + 0.5) * window.innerHeight;
+            core.label.style.left = `${x}px`;
+            core.label.style.top = `${y}px`;
+            core.label.style.transform = "translate(-50%, -100%)";
+            core.label.style.display = (!sensoryBlind && labelPos.z < 1) ? "block" : "none";
+          }
+        }
+
+        let revivedThisFrame = false;
+        for (let i = 0; i < bossEggs.length; i += 1) {
+          const egg = bossEggs[i];
+          egg.mesh.rotation.y += delta * 0.55;
+          egg.mesh.position.y += Math.sin(now * 2.4 + i) * 0.0015;
+          const inRange = egg.mesh.position.distanceTo(player.position) <= 5;
+          const inSameRoom = playerRoomIndex === egg.roomIndex;
+          if (keys.f && inRange && inSameRoom) {
+            egg.holdTime += delta;
+            if (egg.holdTime >= 1 && !revivedThisFrame) {
+              spawnFloatingText(egg.mesh.position.clone().add(new THREE.Vector3(0, 0.8, 0)), `${egg.bossName} 부활`, "#ffffff");
+              reviveBossFromEgg(egg);
+              revivedThisFrame = true;
+              break;
+            }
+          } else {
+            egg.holdTime = 0;
+          }
+        }
+
         if (lockWarning) {
           lockWarning.style.display = anyThreat ? "block" : "none";
         }
