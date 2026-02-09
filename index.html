@@ -1871,7 +1871,7 @@
       const enemySpawnTimers = new Map();
       const enemyMoveSpeed = 3;
       const enemyAvoidRadius = 2;
-      const bossMoveSpeed = enemyMoveSpeed * 1.8;
+      const bossMoveSpeed = enemyMoveSpeed * 1.6;
 
       function createBossLabel() {
         const label = document.createElement("div");
@@ -1890,7 +1890,7 @@
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff0a0, emissive: 0xffaa55, roughness: 0.2 });
 
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 1.7, 8, 16), bodyMat);
-        body.rotation.z = Math.PI / 2;
+        body.rotation.z = 0;
         body.position.set(0, 0.25, 0.1);
         body.scale.set(1, 1, 0.62);
 
@@ -2016,7 +2016,7 @@
         const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff58f, emissive: 0xffd84a, roughness: 0.25 });
 
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 2.35, 8, 16), furMat);
-        body.rotation.z = Math.PI / 2;
+        body.rotation.z = 0;
         body.position.set(0, 0.36, 0.08);
         body.scale.set(0.82, 0.95, 0.5);
         const chest = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), furMat);
@@ -2221,7 +2221,7 @@
         const plateMat = new THREE.MeshStandardMaterial({ color: 0x2d7fd0, roughness: 0.5, metalness: 0.4 });
         const hornMat = new THREE.MeshStandardMaterial({ color: 0xb8e2ff, emissive: 0x3a6ea8, roughness: 0.35, metalness: 0.25 });
         const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.36, 2.8, 8, 16), scaleMat);
-        body.rotation.z = Math.PI / 2;
+        body.rotation.z = 0;
         body.position.set(0, 0.52, 0.2);
         const torsoPlate = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.34, 1.8), plateMat);
         torsoPlate.position.set(0, 0.68, 0.18);
@@ -2527,10 +2527,10 @@
       });
 
       const bossTypes = [
-        { roomIndex: 5, rareName: "피닉스 레어", name: "피닉스", kind: "phoenix", color: 0xff4b4b, primarySubtype: "coral", secondarySubtype: "flame", ballSubtype: "coral", beamSubtype: "flame", defense: { en: 420, ballistic: 360, explosive: 320 } },
-        { roomIndex: 6, rareName: "라이거 레어", name: "라이거", kind: "liger", color: 0xffd93d, primarySubtype: "plasma", secondarySubtype: "shock", ballSubtype: "plasma", beamSubtype: "shock", defense: { en: 320, ballistic: 420, explosive: 320 } },
-        { roomIndex: 7, rareName: "현무 레어", name: "현무", kind: "hyunmu", color: 0x43d66d, primarySubtype: "acid", secondarySubtype: "kojima", ballSubtype: "acid", beamSubtype: "kojima", defense: { en: 320, ballistic: 320, explosive: 420 } },
-        { roomIndex: 8, rareName: "드라군 레어", name: "드라군", kind: "dragoon", color: 0x3aa0ff, primarySubtype: "laser", secondarySubtype: "freeze", ballSubtype: "freeze", beamSubtype: "laser", defense: { en: 380, ballistic: 380, explosive: 380 } }
+        { roomIndex: 5, rareName: "피닉스 레어", name: "피닉스", kind: "phoenix", color: 0xff4b4b, primarySubtype: "coral", secondarySubtype: "flame", tertiarySubtype: "cluster", ballSubtype: "coral", beamSubtype: "flame", defense: { en: 420, ballistic: 360, explosive: 320 } },
+        { roomIndex: 6, rareName: "라이거 레어", name: "라이거", kind: "liger", color: 0xffd93d, primarySubtype: "plasma", secondarySubtype: "shock", tertiarySubtype: "flash", ballSubtype: "plasma", beamSubtype: "shock", defense: { en: 320, ballistic: 420, explosive: 320 } },
+        { roomIndex: 7, rareName: "현무 레어", name: "현무", kind: "hyunmu", color: 0x43d66d, primarySubtype: "acid", secondarySubtype: "kojima", tertiarySubtype: "smoke", ballSubtype: "acid", beamSubtype: "kojima", defense: { en: 320, ballistic: 320, explosive: 420 } },
+        { roomIndex: 8, rareName: "드라군 레어", name: "드라군", kind: "dragoon", color: 0x3aa0ff, primarySubtype: "laser", secondarySubtype: "freeze", tertiarySubtype: "pulse", ballSubtype: "freeze", beamSubtype: "laser", defense: { en: 380, ballistic: 380, explosive: 380 } }
       ];
 
       function spawnBoss(type) {
@@ -2566,6 +2566,7 @@
           },
           primarySubtype: type.primarySubtype || type.ballSubtype || "pulse",
           secondarySubtype: type.secondarySubtype || type.beamSubtype || "laser",
+          tertiarySubtype: type.tertiarySubtype || "cluster",
           ballSubtype: type.ballSubtype || type.primarySubtype || "pulse",
           beamSubtype: type.beamSubtype || type.secondarySubtype || "laser",
           freezeStacks: [],
@@ -2580,11 +2581,11 @@
           ultimatePulseIndex: 0,
           nextAuraAt: now + 0.06,
           nextTrailAt: now + 0.08,
-          nextMeleeAt: now + 1.2,
-          nextMoveSkillAt: now + 1.8,
-          nextRangedAt: now + 1.5,
-          nextDefenseAt: now + 7,
-          nextUltimateAt: now + 20,
+          nextMeleeAt: now + 0.9,
+          nextMoveSkillAt: now + 1.35,
+          nextRangedAt: now + 1.1,
+          nextDefenseAt: now + 6,
+          nextUltimateAt: now + 16,
           meleePatternIndex: 0,
           movePatternIndex: 0,
           rangedPatternIndex: 0,
@@ -4000,6 +4001,10 @@
         return patternIndex % 2 === 0 ? secondary : primary;
       }
 
+      function getBossTertiarySubtype(boss) {
+        return boss.tertiarySubtype || DAMAGE_SUBTYPE.CLUSTER;
+      }
+
       function performBossMeleePattern(boss, patternIndex, now, distToPlayer) {
         const impactSubtype = getBossPatternSubtype(boss, patternIndex);
         const zoneSubtype = getBossAlternateSubtype(boss, patternIndex);
@@ -4017,28 +4022,33 @@
           const ringPacket = scaleDamagePacket(buildDamagePacket(1200, zoneSubtype), 1);
           createExplosionField(boss.mesh.position.clone(), 2.6, 0, impactColor, ringPacket);
         }
-        boss.nextMeleeAt = now + 2.2;
+        boss.nextMeleeAt = now + 1.5;
       }
 
       function performBossMovePattern(boss, patternIndex, now) {
         const moveSubtype = getBossPatternSubtype(boss, patternIndex);
         const moveColor = ATTRIBUTE_PROFILE[moveSubtype]?.color || boss.baseColor;
+        const extraSubtype = getBossTertiarySubtype(boss);
+        const extraColor = ATTRIBUTE_PROFILE[extraSubtype]?.color || moveColor;
         const toPlayer = player.position.clone().sub(boss.mesh.position);
         toPlayer.y = 0;
         if (toPlayer.lengthSq() > 0.0001) toPlayer.normalize();
         spawnBossTelegraphSector(boss.mesh.position.clone(), toPlayer.lengthSq() > 0.0001 ? toPlayer : new THREE.Vector3(0, 0, -1), 4.6, Math.PI * 0.75, moveColor);
         if (patternIndex % 2 === 0) {
-          boss.mesh.position.addScaledVector(toPlayer, 4.2);
+          boss.mesh.position.addScaledVector(toPlayer, 5.8);
         } else {
           const side = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
-          boss.mesh.position.addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * 3.4);
+          boss.mesh.position.addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * 4.8);
         }
         const shockPacket = buildDamagePacket(1500, moveSubtype);
         createExplosionField(boss.mesh.position.clone(), 2.2, 0, moveColor, shockPacket);
+        const tertiaryPacket = buildDamagePacket(1200, extraSubtype);
+        createExplosionField(boss.mesh.position.clone(), 2.6, 0, extraColor, tertiaryPacket);
         if (player.position.distanceTo(boss.mesh.position) <= 2.5) {
           applyDamage(shockPacket, { position: boss.mesh.position.clone(), direct: false });
+          applyDamage(tertiaryPacket, { position: boss.mesh.position.clone(), direct: false });
         }
-        boss.nextMoveSkillAt = now + 3.1;
+        boss.nextMoveSkillAt = now + 2.1;
       }
 
       function performBossRangedPattern(boss, patternIndex, now) {
@@ -4071,15 +4081,18 @@
           scene.add(beam);
           enemyBeams.push(beam);
         }
-        boss.nextRangedAt = now + 2.8;
+        boss.nextRangedAt = now + 1.9;
       }
 
       function triggerBossDefensePattern(boss, now) {
-        spawnBossTelegraphCircle(boss.mesh.position.clone(), 3.2, 0x9fd7ff, 0.5);
+        const defenseSubtype = getBossTertiarySubtype(boss);
+        const defenseColor = ATTRIBUTE_PROFILE[defenseSubtype]?.color || 0x9fd7ff;
+        spawnBossTelegraphCircle(boss.mesh.position.clone(), 3.2, defenseColor, 0.5);
         boss.shieldUntil = now + 5;
         boss.pa = Math.min(50000, boss.pa + 10000);
-        spawnStatusBurst(boss.mesh.position.clone(), 0x9fd7ff, 28, 2.4, 1.2, "boss-shield");
-        boss.nextDefenseAt = now + 10;
+        spawnStatusBurst(boss.mesh.position.clone(), defenseColor, 28, 2.4, 1.2, "boss-shield");
+        createExplosionField(boss.mesh.position.clone(), 2.2, 0, defenseColor, buildDamagePacket(900, defenseSubtype));
+        boss.nextDefenseAt = now + 7;
       }
 
       function triggerBossUltimatePattern(boss, now) {
@@ -4087,7 +4100,7 @@
         boss.ultimateUntil = now + 6;
         boss.nextUltimatePulseAt = now;
         boss.ultimatePulseIndex = 0;
-        boss.nextUltimateAt = now + 25;
+        boss.nextUltimateAt = now + 18;
         spawnStatusBurst(boss.mesh.position.clone(), boss.baseColor, 36, 3.2, 1.6, "boss-ultimate");
       }
 
@@ -4850,17 +4863,17 @@
       { name: "라이거", desc: "라이거 레어의 보스. 플라즈마/감전 속성을 사용해 돌진 후 전격 압박을 이어간다.", entryType: "codex_boss" },
       { name: "현무", desc: "현무 레어의 보스. 산성/코지마 속성을 사용하며 장기 지속 지역 제어에 특화되어 있다.", entryType: "codex_boss" },
       { name: "드라군", desc: "드라군 레어의 보스. 레이저/빙결 속성을 사용해 원거리 관통과 감속 압박을 수행한다.", entryType: "codex_boss" },
-      { name: "피닉스 코어", desc: "피닉스를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
-      { name: "라이거 코어", desc: "라이거를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
-      { name: "현무 코어", desc: "현무를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
-      { name: "드라군 코어", desc: "드라군을 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" }
+      { name: "피닉스 코어", desc: "화염 속성 특징을 지닌 보스 코어. 고온 잔열이 내부에 응축되어 있다.", entryType: "codex_core" },
+      { name: "라이거 코어", desc: "감전 속성 특징을 지닌 보스 코어. 전하가 축적되어 주기적으로 스파크를 튄다.", entryType: "codex_core" },
+      { name: "현무 코어", desc: "산성 속성 특징을 지닌 보스 코어. 부식성 에너지가 점성 있게 맴돈다.", entryType: "codex_core" },
+      { name: "드라군 코어", desc: "빙결 속성 특징을 지닌 보스 코어. 내부 온도가 매우 낮아 냉기가 번져 나온다.", entryType: "codex_core" }
     ];
 
     const rareBossItemEntries = [
-      { name: "피닉스 코어", desc: "피닉스 처치 보상. 붉은 열기를 품은 핵심 코어.", entryType: "item_core" },
-      { name: "라이거 코어", desc: "라이거 처치 보상. 강한 전기 성질이 담긴 핵심 코어.", entryType: "item_core" },
-      { name: "현무 코어", desc: "현무 처치 보상. 안정적인 방어 성질이 담긴 핵심 코어.", entryType: "item_core" },
-      { name: "드라군 코어", desc: "드라군 처치 보상. 고출력 에너지가 응축된 핵심 코어.", entryType: "item_core" }
+      { name: "피닉스 코어", desc: "피닉스 처치 보상. 화염 속성 특징을 지닌 핵심 코어.", entryType: "item_core" },
+      { name: "라이거 코어", desc: "라이거 처치 보상. 감전 속성 특징을 지닌 핵심 코어.", entryType: "item_core" },
+      { name: "현무 코어", desc: "현무 처치 보상. 산성 속성 특징을 지닌 핵심 코어.", entryType: "item_core" },
+      { name: "드라군 코어", desc: "드라군 처치 보상. 빙결 속성 특징을 지닌 핵심 코어.", entryType: "item_core" }
     ];
 
     function isBossCoreName(name) {
@@ -5560,6 +5573,8 @@
           const prevBossPos = bossPos.clone();
           const toPlayerVec = player.position.clone().sub(bossPos);
           const distToPlayer = toPlayerVec.length();
+          const horizontalDistToPlayer = Math.hypot(toPlayerVec.x, toPlayerVec.z);
+          const verticalDistToPlayer = Math.abs(toPlayerVec.y);
           const playerInSameRare = playerRoomIndex === boss.roomIndex;
 
           if (playerInSameRare) {
@@ -5581,7 +5596,7 @@
             if (now >= boss.nextUltimateAt) {
               triggerBossUltimatePattern(boss, now);
             }
-            if (distToPlayer <= 5.2 && now >= boss.nextMeleeAt) {
+            if (horizontalDistToPlayer <= 6.0 && verticalDistToPlayer <= 8.5 && now >= boss.nextMeleeAt) {
               performBossMeleePattern(boss, boss.meleePatternIndex, now, distToPlayer);
               boss.meleePatternIndex = (boss.meleePatternIndex + 1) % 2;
             }
@@ -5589,7 +5604,7 @@
               performBossMovePattern(boss, boss.movePatternIndex, now);
               boss.movePatternIndex = (boss.movePatternIndex + 1) % 2;
             }
-            if (distToPlayer <= 26 && now >= boss.nextRangedAt) {
+            if (horizontalDistToPlayer <= 30 && verticalDistToPlayer <= 18 && now >= boss.nextRangedAt) {
               performBossRangedPattern(boss, boss.rangedPatternIndex, now);
               boss.rangedPatternIndex = (boss.rangedPatternIndex + 1) % 2;
             }
@@ -5627,7 +5642,9 @@
           const bounds = getRoomBounds(boss.roomIndex);
           bossPos.x = clamp(bossPos.x, bounds.minX, bounds.maxX);
           bossPos.z = clamp(bossPos.z, bounds.minZ, bounds.maxZ);
-          bossPos.y = floorY + enemyRadius;
+          const minBossY = floorY + enemyRadius;
+          const maxBossY = floorY + enemyRadius + 9.5;
+          bossPos.y = clamp(bossPos.y, minBossY, maxBossY);
           boss.velocity.copy(bossPos.clone().sub(prevBossPos).divideScalar(Math.max(delta, 0.0001)));
 
           let desiredYaw = boss.spawnYaw;
