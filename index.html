@@ -4561,8 +4561,7 @@
       previewRotX = clamp(previewRotX, -0.8, 0.8);
     });
 
-    function populateGrid(container, prefix) {
-      const total = 50;
+    function populateGrid(container, prefix, total = 50) {
       for (let i = 1; i <= total; i += 1) {
         const item = document.createElement("div");
         item.className = "gridItem";
@@ -4575,8 +4574,42 @@
       }
     }
 
-    populateGrid(codexGridWrap, "도감");
-    populateGrid(itemGridWrap, "아이템");
+    function populateGridEntries(container, entries) {
+      entries.forEach((entry) => {
+        const item = document.createElement("div");
+        item.className = "gridItem";
+        item.dataset.name = entry.name || "항목";
+        item.dataset.desc = entry.desc || "";
+        item.innerHTML = `
+          <div class="gridIcon"></div>
+          <div class="gridLabel">${entry.name || "항목"}</div>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    const rareBossCodexEntries = [
+      { name: "피닉스", desc: "피닉스 레어의 보스. 불꽃 날개와 꼬리를 지닌 고속 근접형 보스." },
+      { name: "라이거", desc: "라이거 레어의 보스. 번개 꼬리를 활용해 돌진과 연속 타격을 구사한다." },
+      { name: "현무", desc: "현무 레어의 보스. 단단한 방어와 범위 공격을 사용하는 중장형 보스." },
+      { name: "드라군", desc: "드라군 레어의 보스. 긴 몸체와 날개를 활용한 기동/원거리 복합형 보스." },
+      { name: "피닉스 코어", desc: "피닉스를 처치하면 획득 가능한 보스 코어 아이템." },
+      { name: "라이거 코어", desc: "라이거를 처치하면 획득 가능한 보스 코어 아이템." },
+      { name: "현무 코어", desc: "현무를 처치하면 획득 가능한 보스 코어 아이템." },
+      { name: "드라군 코어", desc: "드라군을 처치하면 획득 가능한 보스 코어 아이템." }
+    ];
+
+    const rareBossItemEntries = [
+      { name: "피닉스 코어", desc: "피닉스 처치 보상. 붉은 열기를 품은 핵심 코어." },
+      { name: "라이거 코어", desc: "라이거 처치 보상. 강한 전기 성질이 담긴 핵심 코어." },
+      { name: "현무 코어", desc: "현무 처치 보상. 안정적인 방어 성질이 담긴 핵심 코어." },
+      { name: "드라군 코어", desc: "드라군 처치 보상. 고출력 에너지가 응축된 핵심 코어." }
+    ];
+
+    populateGridEntries(codexGridWrap, rareBossCodexEntries);
+    populateGrid(codexGridWrap, "도감", 42);
+    populateGridEntries(itemGridWrap, rareBossItemEntries);
+    populateGrid(itemGridWrap, "아이템", 46);
     populateGrid(shopGridWrap, "상점");
 
     function bindGrid(gridEl, nameEl, descEl) {
@@ -4584,8 +4617,9 @@
         const target = event.target.closest(".gridItem");
         if (!target) return;
         const name = target.dataset.name || "항목";
+        const desc = target.dataset.desc || `${name}의 설명이 이 영역에 표시됩니다.`;
         nameEl.textContent = name;
-        descEl.textContent = `${name}의 설명이 이 영역에 표시됩니다.`;
+        descEl.textContent = desc;
       });
     }
 
