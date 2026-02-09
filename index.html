@@ -720,6 +720,61 @@
       border: 1px dashed rgba(255, 255, 255, 0.35);
       border-radius: 6px;
     }
+    .gridIcon.coreModel {
+      border-color: rgba(255, 255, 255, 0.28);
+      background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.26), rgba(255, 255, 255, 0.04));
+      overflow: hidden;
+    }
+    .gridIcon.coreModel::after {
+      display: none;
+    }
+    .coreGem {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 30px;
+      height: 30px;
+      transform: translate(-50%, -50%) rotate(45deg);
+      border-radius: 4px;
+      border: 1px solid rgba(255, 255, 255, 0.35);
+      box-shadow: 0 0 8px rgba(255, 255, 255, 0.18);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(255, 255, 255, 0.08));
+    }
+    .coreGem::before,
+    .coreGem::after {
+      content: "";
+      position: absolute;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 0;
+      height: 0;
+      border-left: 8px solid transparent;
+      border-right: 8px solid transparent;
+    }
+    .coreGem::before {
+      top: -10px;
+      border-bottom: 10px solid rgba(255, 255, 255, 0.45);
+    }
+    .coreGem::after {
+      bottom: -10px;
+      border-top: 10px solid rgba(0, 0, 0, 0.25);
+    }
+    .gridIcon.core-phoenix .coreGem {
+      background: linear-gradient(140deg, #ffd19c, #ff5b2e 65%, #8c1f10);
+      box-shadow: 0 0 10px rgba(255, 92, 46, 0.42);
+    }
+    .gridIcon.core-liger .coreGem {
+      background: linear-gradient(140deg, #fff6b5, #ffd63a 62%, #8f6d12);
+      box-shadow: 0 0 10px rgba(255, 214, 58, 0.42);
+    }
+    .gridIcon.core-hyunmu .coreGem {
+      background: linear-gradient(140deg, #c5ffd1, #48d771 62%, #196b36);
+      box-shadow: 0 0 10px rgba(72, 215, 113, 0.42);
+    }
+    .gridIcon.core-dragoon .coreGem {
+      background: linear-gradient(140deg, #c6e8ff, #4aa8ff 62%, #1d4f8d);
+      box-shadow: 0 0 10px rgba(74, 168, 255, 0.42);
+    }
     .gridLabel {
       font-size: 10px;
       color: rgba(255, 255, 255, 0.75);
@@ -4687,6 +4742,23 @@
     }
 
     function populateGridEntries(container, entries) {
+      function getCoreIconClass(name) {
+        if (name.includes("피닉스")) return "core-phoenix";
+        if (name.includes("라이거")) return "core-liger";
+        if (name.includes("현무")) return "core-hyunmu";
+        if (name.includes("드라군")) return "core-dragoon";
+        return "";
+      }
+
+      function buildEntryIconHtml(entry) {
+        const entryType = entry.entryType || "";
+        if (entryType === "item_core" || entryType === "codex_core") {
+          const coreClass = getCoreIconClass(entry.name || "");
+          return `<div class="gridIcon coreModel ${coreClass}"><div class="coreGem"></div></div>`;
+        }
+        return `<div class="gridIcon"></div>`;
+      }
+
       entries.forEach((entry) => {
         const item = document.createElement("div");
         item.className = "gridItem";
@@ -4696,7 +4768,7 @@
         item.dataset.name = entry.name || "항목";
         item.dataset.desc = entry.desc || "";
         item.innerHTML = `
-          <div class="gridIcon"></div>
+          ${buildEntryIconHtml(entry)}
           <div class="gridLabel">${entry.name || "항목"}</div>
         `;
         container.appendChild(item);
