@@ -2527,10 +2527,10 @@
       });
 
       const bossTypes = [
-        { roomIndex: 5, rareName: "피닉스 레어", name: "피닉스", kind: "phoenix", color: 0xff4b4b, ballSubtype: "flash", beamSubtype: "flame", defense: { en: 420, ballistic: 360, explosive: 320 } },
-        { roomIndex: 6, rareName: "라이거 레어", name: "라이거", kind: "liger", color: 0xffd93d, ballSubtype: "shock", beamSubtype: "laser", defense: { en: 320, ballistic: 420, explosive: 320 } },
-        { roomIndex: 7, rareName: "현무 레어", name: "현무", kind: "hyunmu", color: 0x43d66d, ballSubtype: "acid", beamSubtype: "kojima", defense: { en: 320, ballistic: 320, explosive: 420 } },
-        { roomIndex: 8, rareName: "드라군 레어", name: "드라군", kind: "dragoon", color: 0x3aa0ff, ballSubtype: "freeze", beamSubtype: "smoke", defense: { en: 380, ballistic: 380, explosive: 380 } }
+        { roomIndex: 5, rareName: "피닉스 레어", name: "피닉스", kind: "phoenix", color: 0xff4b4b, primarySubtype: "coral", secondarySubtype: "flame", ballSubtype: "coral", beamSubtype: "flame", defense: { en: 420, ballistic: 360, explosive: 320 } },
+        { roomIndex: 6, rareName: "라이거 레어", name: "라이거", kind: "liger", color: 0xffd93d, primarySubtype: "plasma", secondarySubtype: "shock", ballSubtype: "plasma", beamSubtype: "shock", defense: { en: 320, ballistic: 420, explosive: 320 } },
+        { roomIndex: 7, rareName: "현무 레어", name: "현무", kind: "hyunmu", color: 0x43d66d, primarySubtype: "acid", secondarySubtype: "kojima", ballSubtype: "acid", beamSubtype: "kojima", defense: { en: 320, ballistic: 320, explosive: 420 } },
+        { roomIndex: 8, rareName: "드라군 레어", name: "드라군", kind: "dragoon", color: 0x3aa0ff, primarySubtype: "laser", secondarySubtype: "freeze", ballSubtype: "freeze", beamSubtype: "laser", defense: { en: 380, ballistic: 380, explosive: 380 } }
       ];
 
       function spawnBoss(type) {
@@ -2564,8 +2564,10 @@
             ballistic: type.defense?.ballistic ?? 360,
             explosive: type.defense?.explosive ?? 360
           },
-          ballSubtype: type.ballSubtype || "pulse",
-          beamSubtype: type.beamSubtype || "laser",
+          primarySubtype: type.primarySubtype || type.ballSubtype || "pulse",
+          secondarySubtype: type.secondarySubtype || type.beamSubtype || "laser",
+          ballSubtype: type.ballSubtype || type.primarySubtype || "pulse",
+          beamSubtype: type.beamSubtype || type.secondarySubtype || "laser",
           freezeStacks: [],
           velocity: new THREE.Vector3(),
           moveTarget: spawnPos.clone(),
@@ -2575,6 +2577,7 @@
           shieldUntil: 0,
           ultimateUntil: 0,
           nextUltimatePulseAt: 0,
+          ultimatePulseIndex: 0,
           nextAuraAt: now + 0.06,
           nextTrailAt: now + 0.08,
           nextMeleeAt: now + 1.2,
@@ -3985,42 +3988,66 @@
         bossTelegraphs.push(sector);
       }
 
+      function getBossPatternSubtype(boss, patternIndex) {
+        const primary = boss.primarySubtype || boss.ballSubtype || DAMAGE_SUBTYPE.PULSE;
+        const secondary = boss.secondarySubtype || boss.beamSubtype || DAMAGE_SUBTYPE.LASER;
+        return patternIndex % 2 === 0 ? primary : secondary;
+      }
+
+      function getBossAlternateSubtype(boss, patternIndex) {
+        const primary = boss.primarySubtype || boss.ballSubtype || DAMAGE_SUBTYPE.PULSE;
+        const secondary = boss.secondarySubtype || boss.beamSubtype || DAMAGE_SUBTYPE.LASER;
+        return patternIndex % 2 === 0 ? secondary : primary;
+      }
+
       function performBossMeleePattern(boss, patternIndex, now, distToPlayer) {
-        spawnBossTelegraphCircle(boss.mesh.position.clone(), patternIndex % 2 === 0 ? 2.8 : 3.8, boss.baseColor);
+        const impactSubtype = getBossPatternSubtype(boss, patternIndex);
+        const zoneSubtype = getBossAlternateSubtype(boss, patternIndex);
+        const impactColor = ATTRIBUTE_PROFILE[impactSubtype]?.color || boss.baseColor;
+        spawnBossTelegraphCircle(boss.mesh.position.clone(), patternIndex % 2 === 0 ? 2.8 : 3.8, impactColor);
         if (patternIndex % 2 === 0) {
           if (distToPlayer <= 2.8) {
-            applyDamage(buildDamagePacket(2800, boss.ballSubtype), { position: boss.mesh.position.clone(), direct: true });
+            applyDamage(buildDamagePacket(2800, impactSubtype), { position: boss.mesh.position.clone(), direct: true });
           }
-          spawnStatusBurst(boss.mesh.position.clone(), boss.baseColor, 18, 1.8, 0.8, "boss-melee");
+          spawnStatusBurst(boss.mesh.position.clone(), impactColor, 18, 1.8, 0.8, "boss-melee");
         } else {
           if (distToPlayer <= 3.8) {
-            applyDamage(buildDamagePacket(2100, boss.beamSubtype), { position: boss.mesh.position.clone(), direct: true });
+            applyDamage(buildDamagePacket(2100, impactSubtype), { position: boss.mesh.position.clone(), direct: true });
           }
-          const ringPacket = scaleDamagePacket(buildDamagePacket(1200, boss.ballSubtype), 1);
-          createExplosionField(boss.mesh.position.clone(), 2.6, 0, boss.baseColor, ringPacket);
+          const ringPacket = scaleDamagePacket(buildDamagePacket(1200, zoneSubtype), 1);
+          createExplosionField(boss.mesh.position.clone(), 2.6, 0, impactColor, ringPacket);
         }
         boss.nextMeleeAt = now + 2.2;
       }
 
       function performBossMovePattern(boss, patternIndex, now) {
+        const moveSubtype = getBossPatternSubtype(boss, patternIndex);
+        const moveColor = ATTRIBUTE_PROFILE[moveSubtype]?.color || boss.baseColor;
         const toPlayer = player.position.clone().sub(boss.mesh.position);
         toPlayer.y = 0;
         if (toPlayer.lengthSq() > 0.0001) toPlayer.normalize();
-        spawnBossTelegraphSector(boss.mesh.position.clone(), toPlayer.lengthSq() > 0.0001 ? toPlayer : new THREE.Vector3(0, 0, -1), 4.6, Math.PI * 0.75, boss.baseColor);
+        spawnBossTelegraphSector(boss.mesh.position.clone(), toPlayer.lengthSq() > 0.0001 ? toPlayer : new THREE.Vector3(0, 0, -1), 4.6, Math.PI * 0.75, moveColor);
         if (patternIndex % 2 === 0) {
           boss.mesh.position.addScaledVector(toPlayer, 4.2);
         } else {
           const side = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
           boss.mesh.position.addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * 3.4);
         }
+        const shockPacket = buildDamagePacket(1500, moveSubtype);
+        createExplosionField(boss.mesh.position.clone(), 2.2, 0, moveColor, shockPacket);
+        if (player.position.distanceTo(boss.mesh.position) <= 2.5) {
+          applyDamage(shockPacket, { position: boss.mesh.position.clone(), direct: false });
+        }
         boss.nextMoveSkillAt = now + 3.1;
       }
 
       function performBossRangedPattern(boss, patternIndex, now) {
+        const rangedSubtype = getBossPatternSubtype(boss, patternIndex);
+        const rangedColor = ATTRIBUTE_PROFILE[rangedSubtype]?.color || boss.baseColor;
         const toPlayer = player.position.clone().sub(boss.mesh.position);
         const dist = Math.max(0.01, toPlayer.length());
         const dir = toPlayer.clone().normalize();
-        spawnBossTelegraphLine(boss.mesh.position.clone(), player.position.clone(), boss.baseColor);
+        spawnBossTelegraphLine(boss.mesh.position.clone(), player.position.clone(), rangedColor);
         if (patternIndex % 2 === 0) {
           for (let i = 0; i < 3; i += 1) {
             const spreadYaw = (i - 1) * 0.08;
@@ -4028,7 +4055,7 @@
             spawnHostileProjectile(
               boss.mesh.position.clone().addScaledVector(spreadDir, enemyRadius + 0.45),
               spreadDir,
-              boss.ballSubtype,
+              rangedSubtype,
               7.5,
               6,
               Math.max(1200, 2200 - dist * 60),
@@ -4036,8 +4063,8 @@
             );
           }
         } else {
-          applyDamage(buildDamagePacket(6500, boss.beamSubtype), { position: player.position.clone(), direct: true });
-          const beamMat = new THREE.LineBasicMaterial({ color: ATTRIBUTE_PROFILE[boss.beamSubtype]?.color || boss.baseColor });
+          applyDamage(buildDamagePacket(6500, rangedSubtype), { position: player.position.clone(), direct: true });
+          const beamMat = new THREE.LineBasicMaterial({ color: rangedColor });
           const beamGeo = new THREE.BufferGeometry().setFromPoints([boss.mesh.position.clone(), player.position.clone()]);
           const beam = new THREE.Line(beamGeo, beamMat);
           beam.userData.life = 0.35;
@@ -4059,6 +4086,7 @@
         spawnBossTelegraphCircle(boss.mesh.position.clone(), 8.2, boss.baseColor, 0.65);
         boss.ultimateUntil = now + 6;
         boss.nextUltimatePulseAt = now;
+        boss.ultimatePulseIndex = 0;
         boss.nextUltimateAt = now + 25;
         spawnStatusBurst(boss.mesh.position.clone(), boss.baseColor, 36, 3.2, 1.6, "boss-ultimate");
       }
@@ -4818,10 +4846,10 @@
     }
 
     const rareBossCodexEntries = [
-      { name: "피닉스", desc: "피닉스 레어의 보스. 불꽃 날개와 꼬리를 지닌 고속 근접형 보스.", entryType: "codex_boss" },
-      { name: "라이거", desc: "라이거 레어의 보스. 번개 꼬리를 활용해 돌진과 연속 타격을 구사한다.", entryType: "codex_boss" },
-      { name: "현무", desc: "현무 레어의 보스. 단단한 방어와 범위 공격을 사용하는 중장형 보스.", entryType: "codex_boss" },
-      { name: "드라군", desc: "드라군 레어의 보스. 긴 몸체와 날개를 활용한 기동/원거리 복합형 보스.", entryType: "codex_boss" },
+      { name: "피닉스", desc: "피닉스 레어의 보스. 코랄/화염 속성을 사용하며 폭발과 화염 근접 패턴이 강력하다.", entryType: "codex_boss" },
+      { name: "라이거", desc: "라이거 레어의 보스. 플라즈마/감전 속성을 사용해 돌진 후 전격 압박을 이어간다.", entryType: "codex_boss" },
+      { name: "현무", desc: "현무 레어의 보스. 산성/코지마 속성을 사용하며 장기 지속 지역 제어에 특화되어 있다.", entryType: "codex_boss" },
+      { name: "드라군", desc: "드라군 레어의 보스. 레이저/빙결 속성을 사용해 원거리 관통과 감속 압박을 수행한다.", entryType: "codex_boss" },
       { name: "피닉스 코어", desc: "피닉스를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
       { name: "라이거 코어", desc: "라이거를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
       { name: "현무 코어", desc: "현무를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
@@ -5570,11 +5598,16 @@
           }
 
           if (now < boss.ultimateUntil && now >= boss.nextUltimatePulseAt) {
-            createExplosionField(bossPos.clone(), 3.2, 0, boss.baseColor, buildDamagePacket(3200, boss.beamSubtype));
+            const pulseSubtype = (boss.ultimatePulseIndex || 0) % 2 === 0
+              ? (boss.primarySubtype || boss.ballSubtype || DAMAGE_SUBTYPE.PULSE)
+              : (boss.secondarySubtype || boss.beamSubtype || DAMAGE_SUBTYPE.LASER);
+            const pulseColor = ATTRIBUTE_PROFILE[pulseSubtype]?.color || boss.baseColor;
+            createExplosionField(bossPos.clone(), 3.2, 0, pulseColor, buildDamagePacket(3200, pulseSubtype));
             if (playerInSameRare && distToPlayer <= 8.2) {
-              applyDamage(buildDamagePacket(3200, boss.beamSubtype), { position: bossPos.clone(), direct: false });
+              applyDamage(buildDamagePacket(3200, pulseSubtype), { position: bossPos.clone(), direct: false });
             }
             boss.nextUltimatePulseAt = now + 0.75;
+            boss.ultimatePulseIndex = (boss.ultimatePulseIndex || 0) + 1;
           }
 
           const desired = boss.moveTarget.clone();
