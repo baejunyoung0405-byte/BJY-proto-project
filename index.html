@@ -807,6 +807,39 @@
       filter: grayscale(1) brightness(0.5);
       box-shadow: 0 0 8px rgba(170, 170, 170, 0.2);
     }
+    .gridIcon.locked,
+    .detailIconLarge.locked {
+      filter: grayscale(1) brightness(0.55);
+    }
+    .gridIcon.bossModel {
+      border-color: rgba(255, 255, 255, 0.28);
+      background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.24), rgba(255, 255, 255, 0.04));
+      overflow: hidden;
+    }
+    .gridIcon.bossModel::after {
+      display: none;
+    }
+    .bossSig {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 34px;
+      height: 34px;
+      transform: translate(-50%, -50%) rotate(45deg);
+      border-radius: 8px;
+      border: 1px solid rgba(255, 255, 255, 0.38);
+      box-shadow: 0 0 10px rgba(255, 255, 255, 0.2);
+    }
+    .gridIcon.boss-phoenix .bossSig { background: linear-gradient(135deg, #ffcc9c, #ff5f38 68%, #7f2017); }
+    .gridIcon.boss-liger .bossSig { background: linear-gradient(135deg, #fff3ad, #ffd83f 68%, #7f6718); }
+    .gridIcon.boss-hyunmu .bossSig { background: linear-gradient(135deg, #cbffcf, #4fd676 68%, #1f6c38); }
+    .gridIcon.boss-dragoon .bossSig { background: linear-gradient(135deg, #cde9ff, #53abff 68%, #1f4f84); }
+    .detailIconLarge.bossModel .bossSig {
+      width: 68px;
+      height: 68px;
+      border-radius: 12px;
+      box-shadow: 0 0 16px rgba(255, 255, 255, 0.22);
+    }
     .gridLabel {
       font-size: 10px;
       color: rgba(255, 255, 255, 0.75);
@@ -1867,6 +1900,12 @@
       const bossCoreNames = ["피닉스 코어", "라이거 코어", "현무 코어", "드라군 코어"];
       const bossCoreInventory = Object.fromEntries(bossCoreNames.map((name) => [name, 0]));
       const bossCoreCodexUnlocked = Object.fromEntries(bossCoreNames.map((name) => [name, false]));
+      const codexBossUnlockByCore = {
+        피닉스: "피닉스 코어",
+        라이거: "라이거 코어",
+        현무: "현무 코어",
+        드라군: "드라군 코어"
+      };
       const bossEggs = [];
       const enemyProjectiles = [];
       const enemyBeams = [];
@@ -4861,10 +4900,22 @@
       return "";
     }
 
+    function getBossIconClass(name) {
+      if (name.includes("피닉스")) return "boss-phoenix";
+      if (name.includes("라이거")) return "boss-liger";
+      if (name.includes("현무")) return "boss-hyunmu";
+      if (name.includes("드라군")) return "boss-dragoon";
+      return "";
+    }
+
     function buildEntryIconHtml(entryType, name, iconBaseClass = "gridIcon") {
       if (entryType === "item_core" || entryType === "codex_core") {
         const coreClass = getCoreIconClass(name || "");
         return `<div class="${iconBaseClass} coreModel ${coreClass}"><div class="coreGem"></div></div>`;
+      }
+      if (entryType === "codex_boss") {
+        const bossClass = getBossIconClass(name || "");
+        return `<div class="${iconBaseClass} bossModel ${bossClass}"><div class="bossSig"></div></div>`;
       }
       return `<div class="${iconBaseClass}"></div>`;
     }
@@ -4873,6 +4924,16 @@
       if (!detailIconEl) return;
       detailIconEl.innerHTML = "";
       detailIconEl.className = "detailIconLarge";
+      if (entryType === "codex_boss") {
+        const bossClass = getBossIconClass(baseName || "");
+        const unlockCoreName = codexBossUnlockByCore[baseName];
+        const unlocked = unlockCoreName ? !!bossCoreCodexUnlocked[unlockCoreName] : true;
+        detailIconEl.classList.add("bossModel");
+        if (!unlocked) detailIconEl.classList.add("locked");
+        if (bossClass) detailIconEl.classList.add(bossClass);
+        detailIconEl.innerHTML = `<div class="bossSig"></div>`;
+        return;
+      }
       if (entryType === "item_core" || entryType === "codex_core") {
         const coreClass = getCoreIconClass(baseName || "");
         const unlocked = isBossCoreName(baseName) ? bossCoreCodexUnlocked[baseName] : true;
@@ -4923,6 +4984,12 @@
       return Object.prototype.hasOwnProperty.call(bossCoreInventory, name);
     }
 
+    function isCodexBossUnlocked(name) {
+      const coreName = codexBossUnlockByCore[name];
+      if (!coreName) return true;
+      return !!bossCoreCodexUnlocked[coreName];
+    }
+
     function getEntryDisplayName(entryType, baseName) {
       if (entryType === "item_core" && isBossCoreName(baseName)) {
         return `${baseName} x${bossCoreInventory[baseName]}`;
@@ -4942,16 +5009,21 @@
         if (!bossCoreCodexUnlocked[baseName]) return "-";
         return baseDesc;
       }
+      if (entryType === "codex_boss") {
+        if (!isCodexBossUnlocked(baseName)) return "-";
+        return baseDesc;
+      }
       return baseDesc || `${baseName}의 설명이 이 영역에 표시됩니다.`;
     }
 
     function refreshCoreCollectionUI() {
-      const allCoreEntries = document.querySelectorAll(".gridItem[data-entry-type='item_core'], .gridItem[data-entry-type='codex_core']");
-      allCoreEntries.forEach((entry) => {
+      const allCodexItemEntries = document.querySelectorAll(".gridItem[data-entry-type='item_core'], .gridItem[data-entry-type='codex_core'], .gridItem[data-entry-type='codex_boss']");
+      allCodexItemEntries.forEach((entry) => {
         const baseName = entry.dataset.baseName || entry.dataset.name || "항목";
         const entryType = entry.dataset.entryType || "generic";
         const baseDesc = entry.dataset.baseDesc || "";
         const unlocked = isBossCoreName(baseName) ? bossCoreCodexUnlocked[baseName] : true;
+        const bossUnlocked = entryType === "codex_boss" ? isCodexBossUnlocked(baseName) : true;
         if (entryType === "item_core") {
           entry.style.display = unlocked ? "" : "none";
         }
@@ -4966,13 +5038,18 @@
           } else {
             iconEl.classList.remove("coreLocked");
           }
+          if (entryType === "codex_boss" && !bossUnlocked) {
+            iconEl.classList.add("locked");
+          } else {
+            iconEl.classList.remove("locked");
+          }
         }
       });
 
       const codexBaseName = codexDetailName.dataset.baseName || "";
       const codexEntryType = codexDetailName.dataset.entryType || "";
       const codexBaseDesc = codexDetailDesc.dataset.baseDesc || codexDetailDesc.textContent || "";
-      if (codexEntryType === "codex_core" && isBossCoreName(codexBaseName)) {
+      if ((codexEntryType === "codex_core" && isBossCoreName(codexBaseName)) || codexEntryType === "codex_boss") {
         codexDetailName.textContent = getEntryDisplayName(codexEntryType, codexBaseName);
         codexDetailDesc.textContent = getEntryDisplayDesc(codexEntryType, codexBaseName, codexBaseDesc);
         applyDetailIcon(codexDetailIcon, codexEntryType, codexBaseName);
