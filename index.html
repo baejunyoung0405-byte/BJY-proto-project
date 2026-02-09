@@ -1611,14 +1611,18 @@
     const offset = roomSize;
     const rooms = [
       { x: 0, z: 0, openings: { n: true, s: true, w: true, e: true } },
-      { x: 0, z: -offset, openings: { n: false, s: true, w: false, e: false } },
-      { x: offset, z: 0, openings: { n: false, s: false, w: true, e: false } },
-      { x: 0, z: offset, openings: { n: true, s: false, w: false, e: false } },
-      { x: -offset, z: 0, openings: { n: false, s: false, w: false, e: true } }
+      { x: 0, z: -offset, openings: { n: true, s: true, w: false, e: false } },
+      { x: offset, z: 0, openings: { n: false, s: false, w: true, e: true } },
+      { x: 0, z: offset, openings: { n: true, s: true, w: false, e: false } },
+      { x: -offset, z: 0, openings: { n: false, s: false, w: true, e: true } },
+      { x: 0, z: -offset * 2, openings: { n: false, s: true, w: false, e: false } },
+      { x: offset * 2, z: 0, openings: { n: false, s: false, w: true, e: false } },
+      { x: 0, z: offset * 2, openings: { n: true, s: false, w: false, e: false } },
+      { x: -offset * 2, z: 0, openings: { n: false, s: false, w: false, e: true } }
     ];
 
-    const roomColors = [0xffffff, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff];
-      const roomSeeds = [101, 202, 303, 404, 505];
+    const roomColors = [0xffffff, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff, 0x111111, 0x111111, 0x111111, 0x111111];
+      const roomSeeds = [101, 202, 303, 404, 505, 606, 707, 808, 909];
       let destructibleBlocks = [];
 
     // Maze blocks removed per request.
