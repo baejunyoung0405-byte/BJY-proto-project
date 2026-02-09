@@ -836,7 +836,6 @@
     .bossSig svg {
       width: 78%;
       height: 78%;
-      fill: rgba(255, 255, 255, 0.92);
       filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.35));
     }
     .gridIcon.boss-phoenix .bossSig { background: linear-gradient(135deg, #ffcc9c, #ff5f38 68%, #7f2017); }
@@ -1980,6 +1979,19 @@
         const crestR = crestL.clone();
         crestR.position.x = 0.11;
         crestR.rotation.z = 0.34;
+        const flameCrown = [];
+        for (let i = -1; i <= 1; i += 1) {
+          const flame = new THREE.Mesh(new THREE.ConeGeometry(0.045 + Math.abs(i) * 0.01, 0.28 + Math.abs(i) * 0.08, 10), new THREE.MeshStandardMaterial({ color: 0xffb55a, emissive: 0xaa3f0b, roughness: 0.22, metalness: 0.08 }));
+          flame.position.set(i * 0.1, 1.06 + Math.abs(i) * 0.03, -1.38);
+          flameCrown.push(flame);
+        }
+        const chestPlumes = [];
+        for (let i = -2; i <= 2; i += 1) {
+          const plume = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.36, 10), featherMat);
+          plume.rotation.x = -Math.PI / 2;
+          plume.position.set(i * 0.08, 0.1, -0.96 - Math.abs(i) * 0.04);
+          chestPlumes.push(plume);
+        }
 
         const wingArmL = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 1.35, 6, 12), darkMat);
         wingArmL.rotation.z = -1.18;
@@ -2058,7 +2070,7 @@
         wingAuraR.rotation.z = Math.PI / 2;
         wingAuraR.position.x = 1.35;
 
-        g.add(body, chest, neck, head, eyeL, eyeR, beakTop, beakBottom, crestCenter, crestL, crestR, wingArmL, wingArmR, wingTipL, wingTipR, ...wingFeathers, ...wingInnerFeathers, legL, legR, clawL, clawR, tailBase, ...tailFan, tailTip, tailFlare, chestRing, wingAuraL, wingAuraR);
+        g.add(body, chest, neck, head, eyeL, eyeR, beakTop, beakBottom, crestCenter, crestL, crestR, ...flameCrown, ...chestPlumes, wingArmL, wingArmR, wingTipL, wingTipR, ...wingFeathers, ...wingInnerFeathers, legL, legR, clawL, clawR, tailBase, ...tailFan, tailTip, tailFlare, chestRing, wingAuraL, wingAuraR);
         g.userData.core = body;
         g.userData.anim = {
           type: "phoenix",
@@ -2131,6 +2143,13 @@
             whiskers.push(w);
           }
         }
+        const browPlates = [];
+        for (let side of [-1, 1]) {
+          const plate = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.06, 0.18), stripeMat);
+          plate.position.set(side * 0.16, 0.66, -1.95);
+          plate.rotation.z = side * 0.14;
+          browPlates.push(plate);
+        }
 
         const stripeParts = [];
         for (let i = 0; i < 6; i += 1) {
@@ -2192,7 +2211,7 @@
           backRidge.push(ridge);
         }
 
-        g.add(body, chest, hip, neck, head, snout, jaw, earL, earR, eyeL, eyeR, nose, fangL, fangR, ...whiskers, mane, ...stripeParts, ...shoulderSpikes, ...legs, ...backRidge, tailBase, bolt1, bolt2, bolt3, tailArc);
+        g.add(body, chest, hip, neck, head, snout, jaw, earL, earR, eyeL, eyeR, nose, fangL, fangR, ...whiskers, ...browPlates, mane, ...stripeParts, ...shoulderSpikes, ...legs, ...backRidge, tailBase, bolt1, bolt2, bolt3, tailArc);
         g.userData.core = body;
         g.userData.anim = {
           type: "liger",
@@ -2281,13 +2300,20 @@
         const tailFinR = tailFinL.clone();
         tailFinR.rotation.z = -Math.PI / 2;
         tailFinR.position.x = 0.14;
+        const shellOrbs = [];
+        for (let i = 0; i < 6; i += 1) {
+          const a = (Math.PI * 2 * i) / 6;
+          const orb = new THREE.Mesh(new THREE.SphereGeometry(0.06, 10, 10), new THREE.MeshStandardMaterial({ color: 0xb5fff2, emissive: 0x3ea58d, roughness: 0.3, metalness: 0.1 }));
+          orb.position.set(Math.cos(a) * 0.55, 0.78, Math.sin(a) * 0.55);
+          shellOrbs.push(orb);
+        }
         const neckSpikes = [];
         for (let i = 0; i < 3; i += 1) {
           const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 8), plateMat);
           spike.position.set(0, 0.42 + i * 0.07, -0.95 - i * 0.18);
           neckSpikes.push(spike);
         }
-        g.add(shell, ring, body, bellyPlate, neck, head, jaw, eyeL, eyeR, ...shellSpikes, ...shellHexes, ...shellRidges, ...legs, ...neckSpikes, longTail1, longTail2, longTail3, tailFinL, tailFinR);
+        g.add(shell, ring, body, bellyPlate, neck, head, jaw, eyeL, eyeR, ...shellSpikes, ...shellHexes, ...shellRidges, ...shellOrbs, ...legs, ...neckSpikes, longTail1, longTail2, longTail3, tailFinL, tailFinR);
         g.userData.core = shell;
         g.userData.anim = {
           type: "hyunmu",
@@ -2419,10 +2445,16 @@
             sidePlates.push(plate);
           }
         }
+        const iceShards = [];
+        for (let i = 0; i < 5; i += 1) {
+          const shard = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.24 + i * 0.03, 8), new THREE.MeshStandardMaterial({ color: 0xcff0ff, emissive: 0x5ca8d8, roughness: 0.28, metalness: 0.18 }));
+          shard.position.set(0, 0.86 - i * 0.04, 0.25 + i * 0.55);
+          iceShards.push(shard);
+        }
         const chinHorn = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.22, 8), hornMat);
         chinHorn.rotation.x = Math.PI;
         chinHorn.position.set(0, 0.72, -2.84);
-        g.add(body, torsoPlate, neck1, neck2, head, snout, jaw, chinHorn, ...teeth, hornL, hornR, browL, browR, eyeL, eyeR, wingBoneL, wingBoneR, wingMemL1, wingMemL2, wingMemR1, wingMemR2, ...wingFingerL, ...wingFingerR, ...dorsalSpines, ...sidePlates, ...legs, ...claws, tail1, tail2, tail3);
+        g.add(body, torsoPlate, neck1, neck2, head, snout, jaw, chinHorn, ...teeth, hornL, hornR, browL, browR, eyeL, eyeR, wingBoneL, wingBoneR, wingMemL1, wingMemL2, wingMemR1, wingMemR2, ...wingFingerL, ...wingFingerR, ...dorsalSpines, ...sidePlates, ...iceShards, ...legs, ...claws, tail1, tail2, tail3);
         g.userData.core = body;
         g.userData.anim = {
           type: "dragoon",
@@ -5050,16 +5082,36 @@
 
     function buildBossGlyphSvg(name) {
       if (name.includes("피닉스")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 11l6 7 9 4-7 3-3 5-5-4-5 4-3-5-7-3 9-4z"/><path d="M14 34l11-3 7 5 7-5 11 3-8 7-10 2-10-2z"/><path d="M24 44l8 3 8-3-3 8h-10z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true">
+          <path fill="#ff6a2a" d="M12 46c1-8 7-13 12-16-1 5 1 9 4 12-1-7 2-14 8-20 1 6 5 11 12 14-4 2-7 5-9 10z"/>
+          <path fill="#ffd39e" d="M22 47c1-5 5-9 10-12 4 2 7 6 10 11-7 3-13 3-20 1z"/>
+          <path fill="#fff6ea" d="M31 20l5 6 8 4-7 3-2 5-4-4-4 4-2-5-7-3 8-4z"/>
+          <path fill="#fff6ea" d="M20 41l11-3 13 3-5 6H25z"/>
+        </svg>`;
       }
       if (name.includes("라이거")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 24l6-4 8 2 8-2 6 4 2 10-6 8H22l-6-8z"/><path d="M22 42l8 0 2 6-8 0zM34 42l8 0-2 6-8 0z"/><path d="M24 28l6 3 4-1 6-3-4 7-2 1-4 0-2-1z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true">
+          <path fill="#ffe25a" d="M38 8l-9 13h7l-8 14 17-17h-8z"/>
+          <path fill="#ffcb3a" d="M49 21l-6 8h5l-6 10 12-12h-5z"/>
+          <path fill="#fff5cb" d="M17 41l5-10 8-2 4-5 8 2 4 5 4 9-5 7H22z"/>
+          <path fill="#7b5b14" d="M26 33l6 2 6-2-3 5h-6zM24 42h6l-3 5zM34 42h6l-3 5z"/>
+        </svg>`;
       }
       if (name.includes("현무")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 29l10-8h8l10 8-2 11-10 8H30l-10-8z"/><path d="M24 31h16v8H24z"/><path d="M14 34l-4 2 4 2zM50 34l4 2-4 2z"/><path d="M30 18l2-6 2 6zM30 52l2 4 2-4z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true">
+          <path fill="#86d8ff" d="M32 8c9 8 15 17 15 27 0 12-8 20-15 21-7-1-15-9-15-21 0-10 6-19 15-27z"/>
+          <path fill="#d5f3ff" d="M32 12c7 7 11 14 11 23 0 10-5 16-11 18-6-2-11-8-11-18 0-9 4-16 11-23z"/>
+          <path fill="#2f7a52" d="M21 34l9-7h4l9 7-2 9-9 7-9-7z"/>
+          <path fill="#b3ffd1" d="M24 36h16v7H24zM18 37l-3 2 3 2zM46 37l3 2-3 2z"/>
+        </svg>`;
       }
       if (name.includes("드라군")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 42l8-8 10-2 8-10 8 2-5 7 9 4-8 2-6 8-10-1-8 5z"/><path d="M24 33l6-7 7 1-5 6z"/><path d="M30 44l7 2-4 6-7-2z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true">
+          <path fill="#8dd5ff" d="M32 7l15 9 3 17-12 19H26L14 33l3-17z"/>
+          <path fill="#d8f2ff" d="M32 13l10 6 2 12-8 15H28l-8-15 2-12z"/>
+          <path fill="#2b5f92" d="M19 41l8-7 7-1 7-9 6 2-4 6 7 3-6 2-5 6-7-1-6 4z"/>
+          <path fill="#cde9ff" d="M25 33l5-6 6 1-4 5z"/>
+        </svg>`;
       }
       return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="12"/></svg>`;
     }
