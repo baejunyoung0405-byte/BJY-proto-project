@@ -2048,8 +2048,17 @@
         const tailFlare = new THREE.Mesh(new THREE.TorusGeometry(0.2, 0.05, 10, 20), new THREE.MeshStandardMaterial({ color: 0xff9a39, emissive: 0xff5a22, roughness: 0.25, metalness: 0.08 }));
         tailFlare.rotation.x = Math.PI / 2;
         tailFlare.position.set(0, 0.17, 2.7);
+        const chestRing = new THREE.Mesh(new THREE.TorusGeometry(0.34, 0.045, 10, 22), new THREE.MeshStandardMaterial({ color: 0xffb25a, emissive: 0x8a3608, roughness: 0.28, metalness: 0.12 }));
+        chestRing.rotation.x = Math.PI / 2;
+        chestRing.position.set(0, 0.27, -0.7);
+        const wingAuraL = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.46, 10), new THREE.MeshStandardMaterial({ color: 0xffad4d, emissive: 0xa83f09, roughness: 0.22, metalness: 0.08 }));
+        wingAuraL.rotation.z = -Math.PI / 2;
+        wingAuraL.position.set(-1.35, 0.05, -0.16);
+        const wingAuraR = wingAuraL.clone();
+        wingAuraR.rotation.z = Math.PI / 2;
+        wingAuraR.position.x = 1.35;
 
-        g.add(body, chest, neck, head, eyeL, eyeR, beakTop, beakBottom, crestCenter, crestL, crestR, wingArmL, wingArmR, wingTipL, wingTipR, ...wingFeathers, ...wingInnerFeathers, legL, legR, clawL, clawR, tailBase, ...tailFan, tailTip, tailFlare);
+        g.add(body, chest, neck, head, eyeL, eyeR, beakTop, beakBottom, crestCenter, crestL, crestR, wingArmL, wingArmR, wingTipL, wingTipR, ...wingFeathers, ...wingInnerFeathers, legL, legR, clawL, clawR, tailBase, ...tailFan, tailTip, tailFlare, chestRing, wingAuraL, wingAuraR);
         g.userData.core = body;
         g.userData.anim = {
           type: "phoenix",
@@ -2060,7 +2069,12 @@
           head,
           tail: tailBase,
           tailTip,
-          tailFlare
+          tailFlare,
+          chestRing,
+          wingAuraL,
+          wingAuraR,
+          legL,
+          legR
         };
         g.scale.setScalar(3);
         return g;
@@ -2170,8 +2184,15 @@
         const tailArc = new THREE.Mesh(new THREE.TorusGeometry(0.16, 0.035, 8, 16), new THREE.MeshStandardMaterial({ color: 0xfff0a6, emissive: 0x9f8a2f, roughness: 0.35, metalness: 0.15 }));
         tailArc.rotation.x = Math.PI / 2;
         tailArc.position.set(0.05, 1.12, 2.72);
+        const backRidge = [];
+        for (let i = 0; i < 5; i += 1) {
+          const ridge = new THREE.Mesh(new THREE.ConeGeometry(0.045, 0.18, 8), stripeMat);
+          ridge.rotation.x = Math.PI;
+          ridge.position.set(0, 0.78 - i * 0.05, -0.3 + i * 0.58);
+          backRidge.push(ridge);
+        }
 
-        g.add(body, chest, hip, neck, head, snout, jaw, earL, earR, eyeL, eyeR, nose, fangL, fangR, ...whiskers, mane, ...stripeParts, ...shoulderSpikes, ...legs, tailBase, bolt1, bolt2, bolt3, tailArc);
+        g.add(body, chest, hip, neck, head, snout, jaw, earL, earR, eyeL, eyeR, nose, fangL, fangR, ...whiskers, mane, ...stripeParts, ...shoulderSpikes, ...legs, ...backRidge, tailBase, bolt1, bolt2, bolt3, tailArc);
         g.userData.core = body;
         g.userData.anim = {
           type: "liger",
@@ -2181,7 +2202,10 @@
           bolt1,
           bolt2,
           bolt3,
-          tailArc
+          tailArc,
+          legFrontL: legs[0],
+          legFrontR: legs[3],
+          jaw
         };
         g.scale.setScalar(3);
         return g;
@@ -2257,7 +2281,13 @@
         const tailFinR = tailFinL.clone();
         tailFinR.rotation.z = -Math.PI / 2;
         tailFinR.position.x = 0.14;
-        g.add(shell, ring, body, bellyPlate, neck, head, jaw, eyeL, eyeR, ...shellSpikes, ...shellHexes, ...shellRidges, ...legs, longTail1, longTail2, longTail3, tailFinL, tailFinR);
+        const neckSpikes = [];
+        for (let i = 0; i < 3; i += 1) {
+          const spike = new THREE.Mesh(new THREE.ConeGeometry(0.05, 0.16, 8), plateMat);
+          spike.position.set(0, 0.42 + i * 0.07, -0.95 - i * 0.18);
+          neckSpikes.push(spike);
+        }
+        g.add(shell, ring, body, bellyPlate, neck, head, jaw, eyeL, eyeR, ...shellSpikes, ...shellHexes, ...shellRidges, ...legs, ...neckSpikes, longTail1, longTail2, longTail3, tailFinL, tailFinR);
         g.userData.core = shell;
         g.userData.anim = {
           type: "hyunmu",
@@ -2267,7 +2297,9 @@
           tail2: longTail2,
           tail3: longTail3,
           tailFinL,
-          tailFinR
+          tailFinR,
+          legA: legs[0],
+          legB: legs[1]
         };
         g.scale.setScalar(3);
         return g;
@@ -2387,7 +2419,10 @@
             sidePlates.push(plate);
           }
         }
-        g.add(body, torsoPlate, neck1, neck2, head, snout, jaw, ...teeth, hornL, hornR, browL, browR, eyeL, eyeR, wingBoneL, wingBoneR, wingMemL1, wingMemL2, wingMemR1, wingMemR2, ...wingFingerL, ...wingFingerR, ...dorsalSpines, ...sidePlates, ...legs, ...claws, tail1, tail2, tail3);
+        const chinHorn = new THREE.Mesh(new THREE.ConeGeometry(0.055, 0.22, 8), hornMat);
+        chinHorn.rotation.x = Math.PI;
+        chinHorn.position.set(0, 0.72, -2.84);
+        g.add(body, torsoPlate, neck1, neck2, head, snout, jaw, chinHorn, ...teeth, hornL, hornR, browL, browR, eyeL, eyeR, wingBoneL, wingBoneR, wingMemL1, wingMemL2, wingMemR1, wingMemR2, ...wingFingerL, ...wingFingerR, ...dorsalSpines, ...sidePlates, ...legs, ...claws, tail1, tail2, tail3);
         g.userData.core = body;
         g.userData.anim = {
           type: "dragoon",
@@ -2400,7 +2435,10 @@
           wingMemR: wingMemR1,
           tail1,
           tail2,
-          tail3
+          tail3,
+          jaw,
+          legA: legs[0],
+          legB: legs[1]
         };
         g.scale.setScalar(3);
         return g;
@@ -2427,6 +2465,11 @@
           if (anim.tail) anim.tail.rotation.y = Math.sin(phase * 1.3) * 0.18;
           if (anim.tailTip) anim.tailTip.rotation.y = Math.sin(phase * 2.1) * 0.28;
           if (anim.tailFlare) anim.tailFlare.rotation.z = Math.sin(phase * 3.8) * 0.45;
+          if (anim.chestRing) anim.chestRing.rotation.z = Math.sin(phase * 2.1) * 0.22;
+          if (anim.wingAuraL) anim.wingAuraL.rotation.y = 0.2 + Math.sin(phase * 2.7) * 0.24;
+          if (anim.wingAuraR) anim.wingAuraR.rotation.y = -0.2 - Math.sin(phase * 2.7) * 0.24;
+          if (anim.legL) anim.legL.rotation.x = Math.sin(phase * 2.2) * 0.16;
+          if (anim.legR) anim.legR.rotation.x = -Math.sin(phase * 2.2) * 0.16;
         } else if (anim.type === "liger") {
           if (anim.head) anim.head.rotation.x = Math.sin(phase * 1.4) * 0.07;
           if (anim.shoulder) anim.shoulder.position.y = 0.44 + Math.sin(phase * 2.2) * 0.04;
@@ -2435,6 +2478,9 @@
           if (anim.bolt2) anim.bolt2.position.y = 0.95 + Math.sin(phase * 3.2 + 0.6) * 0.05;
           if (anim.bolt3) anim.bolt3.position.y = 1.13 + Math.sin(phase * 3.0 + 1.2) * 0.05;
           if (anim.tailArc) anim.tailArc.rotation.z = Math.sin(phase * 3.6) * 0.38;
+          if (anim.legFrontL) anim.legFrontL.rotation.x = Math.sin(phase * 2.5) * 0.22;
+          if (anim.legFrontR) anim.legFrontR.rotation.x = -Math.sin(phase * 2.5) * 0.22;
+          if (anim.jaw) anim.jaw.rotation.x = -0.08 + Math.sin(phase * 3.2) * 0.04;
         } else if (anim.type === "hyunmu") {
           if (anim.neck) anim.neck.rotation.y = Math.sin(phase * 1.1) * 0.14;
           if (anim.head) anim.head.rotation.y = Math.sin(phase * 1.7) * 0.2;
@@ -2443,6 +2489,8 @@
           if (anim.tail3) anim.tail3.rotation.y = Math.sin(phase * 2.1 + 1.1) * 0.24;
           if (anim.tailFinL) anim.tailFinL.rotation.y = Math.sin(phase * 2.4) * 0.22;
           if (anim.tailFinR) anim.tailFinR.rotation.y = -Math.sin(phase * 2.4) * 0.22;
+          if (anim.legA) anim.legA.rotation.z = Math.sin(phase * 1.8) * 0.08;
+          if (anim.legB) anim.legB.rotation.z = -Math.sin(phase * 1.8) * 0.08;
         } else if (anim.type === "dragoon") {
           const wing = Math.sin(phase * 2.5) * (boss.aggro ? 0.22 : 0.1);
           if (anim.wingL) anim.wingL.rotation.z = -1.05 - wing;
@@ -2455,9 +2503,17 @@
           if (anim.tail1) anim.tail1.rotation.y = Math.sin(phase * 1.2) * 0.14;
           if (anim.tail2) anim.tail2.rotation.y = Math.sin(phase * 1.6 + 0.7) * 0.2;
           if (anim.tail3) anim.tail3.rotation.y = Math.sin(phase * 2.1 + 1.2) * 0.26;
+          if (anim.jaw) anim.jaw.rotation.x = -0.04 + Math.sin(phase * 2.8) * 0.05;
+          if (anim.legA) anim.legA.rotation.x = Math.sin(phase * 2.2) * 0.15;
+          if (anim.legB) anim.legB.rotation.x = -Math.sin(phase * 2.2) * 0.15;
         }
         const bob = Math.sin(phase * 1.8) * (boss.aggro ? 0.02 : 0.01);
-        boss.mesh.position.y += bob * delta * 60;
+        if (boss.core) {
+          if (typeof boss.core.userData.baseY !== "number") {
+            boss.core.userData.baseY = boss.core.position.y;
+          }
+          boss.core.position.y = boss.core.userData.baseY + bob;
+        }
       }
 
       function emitBossAmbientEffects(boss, now) {
@@ -3554,6 +3610,15 @@
         };
       }
 
+      const HOSTILE_ENEMY_DAMAGE_SCALE = 0.58;
+      const HOSTILE_BOSS_DAMAGE_SCALE = 0.52;
+
+      function buildHostileDamagePacket(baseDamage, subtype, sourceType = "enemy", override = null) {
+        const basePacket = buildDamagePacket(baseDamage, subtype, override);
+        const scale = sourceType === "boss" ? HOSTILE_BOSS_DAMAGE_SCALE : HOSTILE_ENEMY_DAMAGE_SCALE;
+        return scaleDamagePacket(basePacket, scale);
+      }
+
       function resolveAttributeDamage(packetInput, defenseProfile) {
         const packet = normalizeDamagePacket(packetInput);
         const defense = defenseProfile || { en: 0, ballistic: 0, explosive: 0 };
@@ -4034,7 +4099,7 @@
         projectile.userData.velocity = dir.clone().normalize().multiplyScalar(speed);
         projectile.userData.life = life;
         projectile.userData.subtype = subtype;
-        projectile.userData.damagePacket = buildDamagePacket(damageValue, subtype);
+        projectile.userData.damagePacket = buildHostileDamagePacket(damageValue, subtype, "boss");
         scene.add(projectile);
         enemyProjectiles.push(projectile);
       }
@@ -4106,14 +4171,14 @@
         spawnBossTelegraphCircle(boss.mesh.position.clone(), patternIndex % 2 === 0 ? 2.8 : 3.8, impactColor);
         if (patternIndex % 2 === 0) {
           if (distToPlayer <= 2.8) {
-            applyDamage(buildDamagePacket(2800, impactSubtype), { position: boss.mesh.position.clone(), direct: true });
+            applyDamage(buildHostileDamagePacket(2800, impactSubtype, "boss"), { position: boss.mesh.position.clone(), direct: true });
           }
           spawnStatusBurst(boss.mesh.position.clone(), impactColor, 18, 1.8, 0.8, "boss-melee");
         } else {
           if (distToPlayer <= 3.8) {
-            applyDamage(buildDamagePacket(2100, impactSubtype), { position: boss.mesh.position.clone(), direct: true });
+            applyDamage(buildHostileDamagePacket(2100, impactSubtype, "boss"), { position: boss.mesh.position.clone(), direct: true });
           }
-          const ringPacket = scaleDamagePacket(buildDamagePacket(1200, zoneSubtype), 1);
+          const ringPacket = buildHostileDamagePacket(1200, zoneSubtype, "boss");
           createExplosionField(boss.mesh.position.clone(), 2.6, 0, impactColor, ringPacket);
         }
         boss.nextMeleeAt = now + 1.5;
@@ -4134,9 +4199,9 @@
           const side = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
           boss.mesh.position.addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * 4.8);
         }
-        const shockPacket = buildDamagePacket(1500, moveSubtype);
+        const shockPacket = buildHostileDamagePacket(1500, moveSubtype, "boss");
         createExplosionField(boss.mesh.position.clone(), 2.2, 0, moveColor, shockPacket);
-        const tertiaryPacket = buildDamagePacket(1200, extraSubtype);
+        const tertiaryPacket = buildHostileDamagePacket(1200, extraSubtype, "boss");
         createExplosionField(boss.mesh.position.clone(), 2.6, 0, extraColor, tertiaryPacket);
         if (player.position.distanceTo(boss.mesh.position) <= 2.5) {
           applyDamage(shockPacket, { position: boss.mesh.position.clone(), direct: false });
@@ -4167,7 +4232,7 @@
             );
           }
         } else {
-          applyDamage(buildDamagePacket(6500, rangedSubtype), { position: player.position.clone(), direct: true });
+          applyDamage(buildHostileDamagePacket(6500, rangedSubtype, "boss"), { position: player.position.clone(), direct: true });
           const beamMat = new THREE.LineBasicMaterial({ color: rangedColor });
           const beamGeo = new THREE.BufferGeometry().setFromPoints([boss.mesh.position.clone(), player.position.clone()]);
           const beam = new THREE.Line(beamGeo, beamMat);
@@ -4185,7 +4250,7 @@
         boss.shieldUntil = now + 5;
         boss.pa = Math.min(50000, boss.pa + 10000);
         spawnStatusBurst(boss.mesh.position.clone(), defenseColor, 28, 2.4, 1.2, "boss-shield");
-        createExplosionField(boss.mesh.position.clone(), 2.2, 0, defenseColor, buildDamagePacket(900, defenseSubtype));
+        createExplosionField(boss.mesh.position.clone(), 2.2, 0, defenseColor, buildHostileDamagePacket(900, defenseSubtype, "boss"));
         boss.nextDefenseAt = now + 7;
       }
 
@@ -4924,16 +4989,16 @@
 
     function buildBossGlyphSvg(name) {
       if (name.includes("피닉스")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 10l6 8 10 4-7 4-3 7-6-5-6 5-3-7-7-4 10-4zM20 38l12 4 12-4-5 10H25z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M32 11l6 7 9 4-7 3-3 5-5-4-5 4-3-5-7-3 9-4z"/><path d="M14 34l11-3 7 5 7-5 11 3-8 7-10 2-10-2z"/><path d="M24 44l8 3 8-3-3 8h-10z"/></svg>`;
       }
       if (name.includes("라이거")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 38l6-12 8-2 4-6 8 2 4 6 6 2 4 10-6 8H20zM24 46h6l-3 6zM34 46h6l-3 6z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 24l6-4 8 2 8-2 6 4 2 10-6 8H22l-6-8z"/><path d="M22 42l8 0 2 6-8 0zM34 42l8 0-2 6-8 0z"/><path d="M24 28l6 3 4-1 6-3-4 7-2 1-4 0-2-1z"/></svg>`;
       }
       if (name.includes("현무")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 30l8-8h12l8 8-2 12-10 8H30l-10-8zM14 32l-4 2 4 2zM50 32l4 2-4 2zM30 18l2-6 2 6zM30 52l2 4 2-4z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M18 29l10-8h8l10 8-2 11-10 8H30l-10-8z"/><path d="M24 31h16v8H24z"/><path d="M14 34l-4 2 4 2zM50 34l4 2-4 2z"/><path d="M30 18l2-6 2 6zM30 52l2 4 2-4z"/></svg>`;
       }
       if (name.includes("드라군")) {
-        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M12 42l8-10 10-2 8-10 10 2-6 8 10 4-8 2-6 10-12-2-8 6z"/></svg>`;
+        return `<svg viewBox="0 0 64 64" aria-hidden="true"><path d="M14 42l8-8 10-2 8-10 8 2-5 7 9 4-8 2-6 8-10-1-8 5z"/><path d="M24 33l6-7 7 1-5 6z"/><path d="M30 44l7 2-4 6-7-2z"/></svg>`;
       }
       return `<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="12"/></svg>`;
     }
@@ -5710,7 +5775,7 @@
             ball.userData.velocity = dir.clone().multiplyScalar(6);
             ball.userData.life = 5;
             const dmg = Math.max(500, 1000 - (dist / 10) * 500);
-            ball.userData.damagePacket = buildDamagePacket(dmg, ballSubtype);
+            ball.userData.damagePacket = buildHostileDamagePacket(dmg, ballSubtype, "enemy");
             ball.userData.subtype = ballSubtype;
             scene.add(ball);
             enemyProjectiles.push(ball);
@@ -5719,7 +5784,7 @@
 
           if (targeting && now >= enemy.nextBeam) {
             const beamSubtype = enemy.beamSubtype || DAMAGE_SUBTYPE.LASER;
-            applyDamage(buildDamagePacket(7500, beamSubtype), { position: player.position.clone(), direct: true });
+            applyDamage(buildHostileDamagePacket(7500, beamSubtype, "enemy"), { position: player.position.clone(), direct: true });
             const beamColor = ATTRIBUTE_PROFILE[beamSubtype]?.color || 0xffffff;
             const beamMat = new THREE.LineBasicMaterial({ color: beamColor });
             const beamGeo = new THREE.BufferGeometry().setFromPoints([enemyPos.clone(), player.position.clone()]);
@@ -5788,9 +5853,9 @@
               ? (boss.primarySubtype || boss.ballSubtype || DAMAGE_SUBTYPE.PULSE)
               : (boss.secondarySubtype || boss.beamSubtype || DAMAGE_SUBTYPE.LASER);
             const pulseColor = ATTRIBUTE_PROFILE[pulseSubtype]?.color || boss.baseColor;
-            createExplosionField(bossPos.clone(), 3.2, 0, pulseColor, buildDamagePacket(3200, pulseSubtype));
+            createExplosionField(bossPos.clone(), 3.2, 0, pulseColor, buildHostileDamagePacket(3200, pulseSubtype, "boss"));
             if (playerInSameRare && distToPlayer <= 8.2) {
-              applyDamage(buildDamagePacket(3200, pulseSubtype), { position: bossPos.clone(), direct: false });
+              applyDamage(buildHostileDamagePacket(3200, pulseSubtype, "boss"), { position: bossPos.clone(), direct: false });
             }
             boss.nextUltimatePulseAt = now + 0.75;
             boss.ultimatePulseIndex = (boss.ultimatePulseIndex || 0) + 1;
