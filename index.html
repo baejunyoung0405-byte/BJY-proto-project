@@ -666,6 +666,33 @@
       border: 1px dashed rgba(255, 255, 255, 0.35);
       border-radius: 10px;
     }
+    .detailIconLarge.coreModel {
+      border-color: rgba(255, 255, 255, 0.34);
+      background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.05));
+      overflow: hidden;
+    }
+    .detailIconLarge.coreModel::after {
+      display: none;
+    }
+    .detailIconLarge .coreGem {
+      width: 62px;
+      height: 62px;
+      border-radius: 8px;
+      box-shadow: 0 0 14px rgba(255, 255, 255, 0.2);
+    }
+    .detailIconLarge .coreGem::before,
+    .detailIconLarge .coreGem::after {
+      border-left-width: 16px;
+      border-right-width: 16px;
+    }
+    .detailIconLarge .coreGem::before {
+      top: -18px;
+      border-bottom-width: 18px;
+    }
+    .detailIconLarge .coreGem::after {
+      bottom: -18px;
+      border-top-width: 18px;
+    }
     .detailName {
       font-size: 14px;
       color: #ffffff;
@@ -2766,6 +2793,9 @@
     const codexDetailName = document.getElementById("codexDetailName");
     const itemDetailName = document.getElementById("itemDetailName");
     const shopDetailName = document.getElementById("shopDetailName");
+    const codexDetailIcon = document.getElementById("codexDetailIcon");
+    const itemDetailIcon = document.getElementById("itemDetailIcon");
+    const shopDetailIcon = document.getElementById("shopDetailIcon");
     const codexDetailDesc = document.getElementById("codexDetailDesc");
     const itemDetailDesc = document.getElementById("itemDetailDesc");
     const shopDetailDesc = document.getElementById("shopDetailDesc");
@@ -4741,23 +4771,35 @@
       }
     }
 
-    function populateGridEntries(container, entries) {
-      function getCoreIconClass(name) {
-        if (name.includes("피닉스")) return "core-phoenix";
-        if (name.includes("라이거")) return "core-liger";
-        if (name.includes("현무")) return "core-hyunmu";
-        if (name.includes("드라군")) return "core-dragoon";
-        return "";
-      }
+    function getCoreIconClass(name) {
+      if (name.includes("피닉스")) return "core-phoenix";
+      if (name.includes("라이거")) return "core-liger";
+      if (name.includes("현무")) return "core-hyunmu";
+      if (name.includes("드라군")) return "core-dragoon";
+      return "";
+    }
 
-      function buildEntryIconHtml(entry) {
-        const entryType = entry.entryType || "";
-        if (entryType === "item_core" || entryType === "codex_core") {
-          const coreClass = getCoreIconClass(entry.name || "");
-          return `<div class="gridIcon coreModel ${coreClass}"><div class="coreGem"></div></div>`;
-        }
-        return `<div class="gridIcon"></div>`;
+    function buildEntryIconHtml(entryType, name, iconBaseClass = "gridIcon") {
+      if (entryType === "item_core" || entryType === "codex_core") {
+        const coreClass = getCoreIconClass(name || "");
+        return `<div class="${iconBaseClass} coreModel ${coreClass}"><div class="coreGem"></div></div>`;
       }
+      return `<div class="${iconBaseClass}"></div>`;
+    }
+
+    function applyDetailIcon(detailIconEl, entryType, baseName) {
+      if (!detailIconEl) return;
+      detailIconEl.innerHTML = "";
+      detailIconEl.className = "detailIconLarge";
+      if (entryType === "item_core" || entryType === "codex_core") {
+        const coreClass = getCoreIconClass(baseName || "");
+        detailIconEl.classList.add("coreModel");
+        if (coreClass) detailIconEl.classList.add(coreClass);
+        detailIconEl.innerHTML = `<div class="coreGem"></div>`;
+      }
+    }
+
+    function populateGridEntries(container, entries) {
 
       entries.forEach((entry) => {
         const item = document.createElement("div");
@@ -4768,7 +4810,7 @@
         item.dataset.name = entry.name || "항목";
         item.dataset.desc = entry.desc || "";
         item.innerHTML = `
-          ${buildEntryIconHtml(entry)}
+          ${buildEntryIconHtml(entry.entryType || "generic", entry.name || "항목")}
           <div class="gridLabel">${entry.name || "항목"}</div>
         `;
         container.appendChild(item);
@@ -4854,7 +4896,7 @@
     populateGrid(shopGridWrap, "상점");
     refreshCoreCollectionUI();
 
-    function bindGrid(gridEl, nameEl, descEl) {
+    function bindGrid(gridEl, nameEl, descEl, iconEl) {
       gridEl.addEventListener("click", (event) => {
         const target = event.target.closest(".gridItem");
         if (!target) return;
@@ -4866,12 +4908,13 @@
         descEl.dataset.baseDesc = baseDesc;
         nameEl.textContent = getEntryDisplayName(entryType, baseName);
         descEl.textContent = getEntryDisplayDesc(entryType, baseName, baseDesc);
+        applyDetailIcon(iconEl, entryType, baseName);
       });
     }
 
-    bindGrid(codexGrid, codexDetailName, codexDetailDesc);
-    bindGrid(itemGrid, itemDetailName, itemDetailDesc);
-    bindGrid(shopGrid, shopDetailName, shopDetailDesc);
+    bindGrid(codexGrid, codexDetailName, codexDetailDesc, codexDetailIcon);
+    bindGrid(itemGrid, itemDetailName, itemDetailDesc, itemDetailIcon);
+    bindGrid(shopGrid, shopDetailName, shopDetailDesc, shopDetailIcon);
 
     function enableDragScroll(container) {
       let isDown = false;
