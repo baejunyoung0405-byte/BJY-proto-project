@@ -2036,7 +2036,6 @@
       let aimAssistTarget = null;
       let aimAssistAcquirePending = false;
       let aimAssistDownMouse5 = false;
-      let aimAssistDownForwardKey = false;
       let hitGreenUntil = 0;
       let hitRedUntil = 0;
       let hitRedDamageUntil = 0;
@@ -2074,7 +2073,7 @@
       }
 
       function syncAimAssistHoldState() {
-        const active = aimAssistDownMouse5 || aimAssistDownForwardKey;
+        const active = aimAssistDownMouse5;
         if (active) {
           if (!aimAssistHolding) beginAimAssist();
         } else if (aimAssistHolding) {
@@ -3216,12 +3215,7 @@
     document.addEventListener("mousedown", (event) => {
       if (event.button === 0) armRaiseL = true;
       if (event.button === 2) armRaiseR = true;
-      if (event.button === 3) {
-        autoAimMode = !autoAimMode;
-        updateAimModeDisplay();
-        event.preventDefault();
-      }
-      if (event.button >= 4) {
+      if (event.button === 3 || event.button === 4) {
         syncAimAssistMouse5FromButtons(event.buttons);
         if ((event.buttons & 24) === 0) {
           setAimAssistMouseDownState(true);
@@ -3235,7 +3229,7 @@
     document.addEventListener("mouseup", (event) => {
       if (event.button === 0) armRaiseL = false;
       if (event.button === 2) armRaiseR = false;
-      if (event.button >= 4) {
+      if (event.button === 3 || event.button === 4) {
         syncAimAssistMouse5FromButtons(event.buttons);
         if ((event.buttons & 24) === 0) {
           setAimAssistMouseDownState(false);
@@ -3253,26 +3247,12 @@
         event.preventDefault();
       }
     });
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "BrowserForward" || event.key === "BrowserBack") {
-        aimAssistDownForwardKey = true;
-        syncAimAssistHoldState();
-        event.preventDefault();
-      }
-    });
-    document.addEventListener("keyup", (event) => {
-      if (event.key === "BrowserForward" || event.key === "BrowserBack") {
-        aimAssistDownForwardKey = false;
-        syncAimAssistHoldState();
-      }
-    });
     window.addEventListener("blur", () => {
       setAimAssistMouseDownState(false);
-      aimAssistDownForwardKey = false;
       syncAimAssistHoldState();
     });
     window.addEventListener("mousedown", (event) => {
-      if (event.button >= 4) {
+      if (event.button === 3 || event.button === 4) {
         syncAimAssistMouse5FromButtons(event.buttons);
         if ((event.buttons & 24) === 0) {
           setAimAssistMouseDownState(true);
@@ -3281,7 +3261,7 @@
       }
     }, true);
     window.addEventListener("mouseup", (event) => {
-      if (event.button >= 4) {
+      if (event.button === 3 || event.button === 4) {
         syncAimAssistMouse5FromButtons(event.buttons);
         if ((event.buttons & 24) === 0) {
           setAimAssistMouseDownState(false);
