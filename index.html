@@ -1999,6 +1999,15 @@
           spike.position.set(Math.cos(a) * 0.75, 0.87, Math.sin(a) * 0.75);
           shellSpikes.push(spike);
         }
+        const shellHexes = [];
+        for (let i = 0; i < 10; i += 1) {
+          const plate = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.09, 0.04, 6), new THREE.MeshStandardMaterial({ color: 0x58d279, emissive: 0x1d6a38, roughness: 0.5, metalness: 0.25 }));
+          const a = (Math.PI * 2 * i) / 10;
+          const r = i % 2 === 0 ? 0.42 : 0.62;
+          plate.position.set(Math.cos(a) * r, 0.9, Math.sin(a) * r);
+          plate.rotation.y = a;
+          shellHexes.push(plate);
+        }
         const body = new THREE.Mesh(new THREE.BoxGeometry(1.75, 0.5, 1.65), bodyMat);
         body.position.y = 0.15;
         const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.38, 6, 10), bodyMat);
@@ -2027,7 +2036,7 @@
         const longTail3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.07, 0.72, 6, 10), new THREE.MeshStandardMaterial({ color: 0x69ff88, emissive: 0x1c6c2f }));
         longTail3.rotation.x = Math.PI / 2;
         longTail3.position.set(0, 0.42, 2.95);
-        g.add(shell, ring, body, neck, head, jaw, eyeL, eyeR, ...shellSpikes, ...legs, longTail1, longTail2, longTail3);
+        g.add(shell, ring, body, neck, head, jaw, eyeL, eyeR, ...shellSpikes, ...shellHexes, ...legs, longTail1, longTail2, longTail3);
         g.userData.core = shell;
         g.userData.anim = {
           type: "hyunmu",
@@ -2121,7 +2130,13 @@
         const tail3 = new THREE.Mesh(new THREE.CapsuleGeometry(0.1, 1.0, 6, 10), plateMat);
         tail3.rotation.x = Math.PI / 2;
         tail3.position.set(0, 0.73, 3.76);
-        g.add(body, torsoPlate, neck1, neck2, head, snout, jaw, hornL, hornR, browL, browR, eyeL, eyeR, wingBoneL, wingBoneR, wingMemL1, wingMemL2, wingMemR1, wingMemR2, ...legs, ...claws, tail1, tail2, tail3);
+        const dorsalSpines = [];
+        for (let i = 0; i < 6; i += 1) {
+          const spine = new THREE.Mesh(new THREE.ConeGeometry(0.06 + i * 0.005, 0.28 + i * 0.03, 8), new THREE.MeshStandardMaterial({ color: 0x8fd2ff, emissive: 0x2a74a8 }));
+          spine.position.set(0, 0.95 - i * 0.03, -0.25 + i * 0.52);
+          dorsalSpines.push(spine);
+        }
+        g.add(body, torsoPlate, neck1, neck2, head, snout, jaw, hornL, hornR, browL, browR, eyeL, eyeR, wingBoneL, wingBoneR, wingMemL1, wingMemL2, wingMemR1, wingMemR2, ...dorsalSpines, ...legs, ...claws, tail1, tail2, tail3);
         g.userData.core = body;
         g.userData.anim = {
           type: "dragoon",
@@ -2162,7 +2177,7 @@
           if (anim.tailTip) anim.tailTip.rotation.y = Math.sin(phase * 2.1) * 0.28;
         } else if (anim.type === "liger") {
           if (anim.head) anim.head.rotation.x = Math.sin(phase * 1.4) * 0.07;
-          if (anim.shoulder) anim.shoulder.position.y = 0.45 + Math.sin(phase * 2.2) * 0.04;
+          if (anim.shoulder) anim.shoulder.position.y = 0.44 + Math.sin(phase * 2.2) * 0.04;
           if (anim.tail) anim.tail.rotation.y = Math.sin(phase * 1.9) * 0.35;
           if (anim.bolt1) anim.bolt1.position.y = 0.7 + Math.sin(phase * 3.4) * 0.05;
           if (anim.bolt2) anim.bolt2.position.y = 0.95 + Math.sin(phase * 3.2 + 0.6) * 0.05;
@@ -2188,6 +2203,35 @@
         }
         const bob = Math.sin(phase * 1.8) * (boss.aggro ? 0.02 : 0.01);
         boss.mesh.position.y += bob * delta * 60;
+      }
+
+      function emitBossAmbientEffects(boss, now) {
+        if (now >= (boss.nextAuraAt || 0)) {
+          const auraColor = boss.kind === "phoenix"
+            ? 0xff7a2f
+            : boss.kind === "liger"
+              ? 0xfff06a
+              : boss.kind === "hyunmu"
+                ? 0x6eff8a
+                : 0x7cc4ff;
+          const yOffset = 0.8 + Math.random() * 1.6;
+          const angle = Math.random() * Math.PI * 2;
+          const radius = boss.aggro ? 1.05 : 0.82;
+          const pos = boss.mesh.position.clone().add(new THREE.Vector3(Math.cos(angle) * radius, yOffset, Math.sin(angle) * radius));
+          spawnProjectileParticle(pos, auraColor, boss.aggro ? 0.05 : 0.035, boss.aggro ? 0.35 : 0.25);
+          boss.nextAuraAt = now + (boss.aggro ? 0.018 : 0.03);
+        }
+        if (boss.aggro && now >= (boss.nextTrailAt || 0)) {
+          const trailColor = boss.kind === "phoenix"
+            ? 0xff4b2f
+            : boss.kind === "liger"
+              ? 0xffd93d
+              : boss.kind === "hyunmu"
+                ? 0x43d66d
+                : 0x3aa0ff;
+          spawnStatusBurst(boss.mesh.position.clone().add(new THREE.Vector3(0, 0.45, 0)), trailColor, 2, 0.75, 0.35, "boss-trail");
+          boss.nextTrailAt = now + 0.11;
+        }
       }
 
       function getRoomBounds(roomIndex) {
@@ -2334,6 +2378,8 @@
           shieldUntil: 0,
           ultimateUntil: 0,
           nextUltimatePulseAt: 0,
+          nextAuraAt: now + 0.06,
+          nextTrailAt: now + 0.08,
           nextMeleeAt: now + 1.2,
           nextMoveSkillAt: now + 1.8,
           nextRangedAt: now + 1.5,
@@ -5096,6 +5142,7 @@
           const yawDiff = Math.atan2(Math.sin(desiredYaw - boss.mesh.rotation.y), Math.cos(desiredYaw - boss.mesh.rotation.y));
           boss.mesh.rotation.y += yawDiff * Math.min(1, 4.5 * delta);
           animateBossModel(boss, now, delta);
+          emitBossAmbientEffects(boss, now);
 
           if (boss.core) {
             const shielding = now < boss.shieldUntil;
