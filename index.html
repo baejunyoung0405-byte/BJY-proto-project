@@ -1421,12 +1421,6 @@
     dir.position.set(5, 10, 2);
     scene.add(ambient, dir);
 
-    const gridMaterial = new THREE.LineBasicMaterial({
-      color: 0x000000,
-      transparent: true,
-      opacity: 0.55
-    });
-
     function createMaterial(color) {
       return new THREE.MeshStandardMaterial({
         color,
@@ -1497,7 +1491,7 @@
       return grid;
     }
 
-    function createGridLines(width, height, divisionsW, divisionsH) {
+    function createGridLines(width, height, divisionsW, divisionsH, color = 0x000000) {
       const vertices = [];
       const stepW = width / divisionsW;
       const stepH = height / divisionsH;
@@ -1515,10 +1509,15 @@
 
       const geometry = new THREE.BufferGeometry();
       geometry.setAttribute("position", new THREE.Float32BufferAttribute(vertices, 3));
-      return new THREE.LineSegments(geometry, gridMaterial);
+      const material = new THREE.LineBasicMaterial({
+        color,
+        transparent: true,
+        opacity: 0.55
+      });
+      return new THREE.LineSegments(geometry, material);
     }
 
-    function createRoom(center, openings, color, blockBoxes) {
+    function createRoom(center, openings, color, blockBoxes, gridColor = 0x000000) {
       const roomMat = createMaterial(color);
       const group = new THREE.Group();
       const yCenter = roomHeight / 2;
@@ -1533,12 +1532,12 @@
       ceiling.position.set(center.x, roomHeight, center.z);
       group.add(ceiling);
 
-      const floorGrid = createGridLines(roomSize, roomSize, roomSize, roomSize);
+      const floorGrid = createGridLines(roomSize, roomSize, roomSize, roomSize, gridColor);
       floorGrid.rotation.x = -Math.PI / 2;
       floorGrid.position.set(center.x, 0.1, center.z);
       group.add(floorGrid);
 
-      const ceilingGrid = createGridLines(roomSize, roomSize, roomSize, roomSize);
+      const ceilingGrid = createGridLines(roomSize, roomSize, roomSize, roomSize, gridColor);
       ceilingGrid.rotation.x = Math.PI / 2;
       ceilingGrid.position.set(center.x, roomHeight - 0.1, center.z);
       group.add(ceilingGrid);
@@ -1548,7 +1547,7 @@
         north.position.set(center.x, yCenter, center.z - half);
         group.add(north);
 
-        const northGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight);
+        const northGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight, gridColor);
         northGrid.position.set(center.x, yCenter, center.z - half + 0.1);
         group.add(northGrid);
       }
@@ -1559,7 +1558,7 @@
         south.position.set(center.x, yCenter, center.z + half);
         group.add(south);
 
-        const southGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight);
+        const southGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight, gridColor);
         southGrid.rotation.y = Math.PI;
         southGrid.position.set(center.x, yCenter, center.z + half - 0.1);
         group.add(southGrid);
@@ -1571,7 +1570,7 @@
         west.position.set(center.x - half, yCenter, center.z);
         group.add(west);
 
-        const westGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight);
+        const westGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight, gridColor);
         westGrid.rotation.y = Math.PI / 2;
         westGrid.position.set(center.x - half + 0.1, yCenter, center.z);
         group.add(westGrid);
@@ -1583,7 +1582,7 @@
         east.position.set(center.x + half, yCenter, center.z);
         group.add(east);
 
-        const eastGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight);
+        const eastGrid = createGridLines(roomSize, roomHeight, roomSize, roomHeight, gridColor);
         eastGrid.rotation.y = -Math.PI / 2;
         eastGrid.position.set(center.x + half - 0.1, yCenter, center.z);
         group.add(eastGrid);
@@ -1614,13 +1613,14 @@
       { x: offset, z: 0, openings: { n: false, s: false, w: true, e: true } },
       { x: 0, z: offset, openings: { n: true, s: true, w: false, e: false } },
       { x: -offset, z: 0, openings: { n: false, s: false, w: true, e: true } },
-      { x: 0, z: -offset * 2, openings: { n: true, s: true, w: false, e: false } },
-      { x: offset * 2, z: 0, openings: { n: false, s: false, w: true, e: true } },
-      { x: 0, z: offset * 2, openings: { n: true, s: true, w: false, e: false } },
-      { x: -offset * 2, z: 0, openings: { n: false, s: false, w: true, e: true } }
+      { x: 0, z: -offset * 2, openings: { n: false, s: true, w: false, e: false } },
+      { x: offset * 2, z: 0, openings: { n: false, s: false, w: true, e: false } },
+      { x: 0, z: offset * 2, openings: { n: true, s: false, w: false, e: false } },
+      { x: -offset * 2, z: 0, openings: { n: false, s: false, w: false, e: true } }
     ];
 
     const roomColors = [0xffffff, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff, 0x7a7a7a, 0x7a7a7a, 0x7a7a7a, 0x7a7a7a];
+    const roomGridColors = [0x000000, 0x000000, 0x000000, 0x000000, 0x000000, 0xff4b4b, 0xffd93d, 0x43d66d, 0x3aa0ff];
       const roomSeeds = [101, 202, 303, 404, 505, 606, 707, 808, 909];
       let destructibleBlocks = [];
     const worldHalfX = Math.max(...rooms.map((room) => Math.abs(room.x))) + half;
@@ -1639,7 +1639,8 @@
           new THREE.Vector3(room.x, 0, room.z),
           room.openings,
           roomColors[index],
-          room.blockBoxes
+          room.blockBoxes,
+          roomGridColors[index] || 0x000000
         );
       });
 
