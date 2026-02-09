@@ -1194,7 +1194,7 @@
           <p>락온: 큰 원 안의 적/블럭 자동 표적화 + 유도 사격</p>
           <p><strong>게임 요소 요약</strong></p>
           <p>전장: 중앙 흰 방 + 4색 방 + 4개 레어 방으로 연결된 구조</p>
-          <p>레어 방 이름: 피닉스 레어 / 라이거 레어 / 현무 레어 / 청룡 레어</p>
+          <p>레어 방 이름: 피닉스 레어 / 라이거 레어 / 현무 레어 / 드라군 레어</p>
           <p>Q(셀 윙): 1초 홀드 발동, 일정 시간 강화/무적 + AP 회복/광역 충격</p>
           <p>1(리페어 키트): 1초 홀드, AP 회복 + 피해 완화 단계 적용</p>
           <p>2(셉티아): 홀드 중 자동 표적 다이아몬드 발사</p>
@@ -1630,7 +1630,7 @@
       5: "피닉스 레어",
       6: "라이거 레어",
       7: "현무 레어",
-      8: "청룡 레어"
+      8: "드라군 레어"
     };
       const roomSeeds = [101, 202, 303, 404, 505, 606, 707, 808, 909];
       let destructibleBlocks = [];
@@ -1755,6 +1755,7 @@
         { roomIndex: 4, color: 0x3aa0ff, ballSubtype: "smoke", beamSubtype: "flash", defense: { en: 220, ballistic: 220, explosive: 220 } }
       ];
       const enemies = [];
+      const bosses = [];
       const enemyProjectiles = [];
       const enemyBeams = [];
       const explosionFields = [];
@@ -1762,6 +1763,159 @@
       const enemySpawnTimers = new Map();
       const enemyMoveSpeed = 3;
       const enemyAvoidRadius = 2;
+      const bossMoveSpeed = enemyMoveSpeed;
+
+      function createBossLabel() {
+        const label = document.createElement("div");
+        label.className = "enemyLabel";
+        label.textContent = "BOSS AP 1000000 / PA 50000";
+        document.body.appendChild(label);
+        return label;
+      }
+
+      function buildPhoenixBossModel() {
+        const g = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff3a2f, emissive: 0x661010, roughness: 0.45, metalness: 0.2 });
+        const wingMat = new THREE.MeshStandardMaterial({ color: 0xff7a2f, emissive: 0x552200, roughness: 0.5, metalness: 0.1 });
+        const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 18, 16), bodyMat);
+        body.scale.set(1, 0.75, 1.2);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 14, 12), bodyMat);
+        head.position.set(0, 0.48, -0.95);
+        const beak = new THREE.Mesh(new THREE.ConeGeometry(0.12, 0.35, 8), new THREE.MeshStandardMaterial({ color: 0xffc16a, roughness: 0.6 }));
+        beak.rotation.x = Math.PI / 2;
+        beak.position.set(0, 0.42, -1.25);
+        const wingL = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.5, 10), wingMat);
+        wingL.rotation.z = -Math.PI / 2;
+        wingL.rotation.y = 0.35;
+        wingL.position.set(-1.0, 0.05, -0.05);
+        const wingR = wingL.clone();
+        wingR.rotation.z = Math.PI / 2;
+        wingR.position.x = 1.0;
+        const tailBase = new THREE.Mesh(new THREE.ConeGeometry(0.24, 0.9, 8), wingMat);
+        tailBase.rotation.x = -Math.PI / 2;
+        tailBase.position.set(0, 0.05, 1.05);
+        const tailFlame = new THREE.Mesh(new THREE.ConeGeometry(0.18, 0.65, 8), new THREE.MeshStandardMaterial({ color: 0xff4500, emissive: 0xaa2200 }));
+        tailFlame.rotation.x = -Math.PI / 2;
+        tailFlame.position.set(0, 0.08, 1.65);
+        g.add(body, head, beak, wingL, wingR, tailBase, tailFlame);
+        g.userData.core = body;
+        return g;
+      }
+
+      function buildLigerBossModel() {
+        const g = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x665500, roughness: 0.55, metalness: 0.2 });
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0xc7a420, roughness: 0.6 });
+        const fangMat = new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.4 });
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.9, 0.9), bodyMat);
+        body.position.set(0, 0.35, 0.1);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.72, 0.72), bodyMat);
+        head.position.set(0, 0.44, -0.95);
+        const stripe = new THREE.Mesh(new THREE.BoxGeometry(1.7, 0.16, 0.94), stripeMat);
+        stripe.position.set(0, 0.72, 0.1);
+        const fangL = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.32, 0.08), fangMat);
+        const fangR = fangL.clone();
+        fangL.position.set(-0.18, 0.2, -1.32);
+        fangR.position.set(0.18, 0.2, -1.32);
+        const legGeo = new THREE.CylinderGeometry(0.14, 0.16, 0.58, 8);
+        const legL1 = new THREE.Mesh(legGeo, bodyMat);
+        const legL2 = new THREE.Mesh(legGeo, bodyMat);
+        const legR1 = new THREE.Mesh(legGeo, bodyMat);
+        const legR2 = new THREE.Mesh(legGeo, bodyMat);
+        legL1.position.set(-0.6, -0.05, -0.22);
+        legR1.position.set(0.6, -0.05, -0.22);
+        legL2.position.set(-0.6, -0.05, 0.58);
+        legR2.position.set(0.6, -0.05, 0.58);
+        const tail1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.55), new THREE.MeshStandardMaterial({ color: 0xfff266, emissive: 0x555522 }));
+        const tail2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.5), new THREE.MeshStandardMaterial({ color: 0xfff266, emissive: 0x555522 }));
+        tail1.position.set(0.14, 0.42, 1.1);
+        tail2.position.set(-0.14, 0.72, 1.5);
+        g.add(body, head, stripe, fangL, fangR, legL1, legL2, legR1, legR2, tail1, tail2);
+        g.userData.core = body;
+        return g;
+      }
+
+      function buildHyunmuBossModel() {
+        const g = new THREE.Group();
+        const shellMat = new THREE.MeshStandardMaterial({ color: 0x43d66d, emissive: 0x143d1f, roughness: 0.5, metalness: 0.2 });
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2aa250, roughness: 0.7, metalness: 0.1 });
+        const shell = new THREE.Mesh(new THREE.SphereGeometry(1.05, 18, 16), shellMat);
+        shell.scale.set(1.2, 0.7, 1.2);
+        shell.position.y = 0.42;
+        const body = new THREE.Mesh(new THREE.BoxGeometry(1.55, 0.45, 1.45), bodyMat);
+        body.position.y = 0.12;
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 12, 10), bodyMat);
+        head.position.set(0, 0.3, -1.05);
+        const legGeo = new THREE.CylinderGeometry(0.15, 0.18, 0.45, 8);
+        const legs = [
+          new THREE.Mesh(legGeo, bodyMat),
+          new THREE.Mesh(legGeo, bodyMat),
+          new THREE.Mesh(legGeo, bodyMat),
+          new THREE.Mesh(legGeo, bodyMat)
+        ];
+        legs[0].position.set(-0.68, 0, -0.55);
+        legs[1].position.set(0.68, 0, -0.55);
+        legs[2].position.set(-0.68, 0, 0.55);
+        legs[3].position.set(0.68, 0, 0.55);
+        const tail = new THREE.Mesh(new THREE.CylinderGeometry(0.09, 0.04, 1.8, 8), shellMat);
+        tail.rotation.x = Math.PI / 2;
+        tail.position.set(0, 0.2, 1.55);
+        g.add(shell, body, head, tail, ...legs);
+        g.userData.core = shell;
+        return g;
+      }
+
+      function buildDragoonBossModel() {
+        const g = new THREE.Group();
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3aa0ff, emissive: 0x102b66, roughness: 0.5, metalness: 0.25 });
+        const hornMat = new THREE.MeshStandardMaterial({ color: 0xa7d6ff, roughness: 0.45, metalness: 0.2 });
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 2.2, 8, 14), bodyMat);
+        body.rotation.z = Math.PI / 2;
+        body.position.set(0, 0.5, 0.2);
+        const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.22, 0.9, 6, 10), bodyMat);
+        neck.rotation.x = Math.PI / 2;
+        neck.position.set(0, 0.75, -1.05);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.6, 0.5, 0.75), bodyMat);
+        head.position.set(0, 0.95, -1.55);
+        const hornL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.45, 8), hornMat);
+        const hornR = hornL.clone();
+        hornL.rotation.x = -Math.PI / 6;
+        hornR.rotation.x = -Math.PI / 6;
+        hornL.position.set(-0.18, 1.2, -1.78);
+        hornR.position.set(0.18, 1.2, -1.78);
+        const wingMat = new THREE.MeshStandardMaterial({ color: 0x5fb6ff, emissive: 0x1a4f88, roughness: 0.55, metalness: 0.1 });
+        const wingL = new THREE.Mesh(new THREE.ConeGeometry(0.28, 1.3, 8), wingMat);
+        wingL.rotation.z = -Math.PI / 2;
+        wingL.rotation.y = 0.45;
+        wingL.position.set(-0.95, 0.75, -0.2);
+        const wingR = wingL.clone();
+        wingR.rotation.z = Math.PI / 2;
+        wingR.position.x = 0.95;
+        const legGeo = new THREE.CylinderGeometry(0.1, 0.12, 0.52, 8);
+        const legs = [
+          new THREE.Mesh(legGeo, bodyMat),
+          new THREE.Mesh(legGeo, bodyMat),
+          new THREE.Mesh(legGeo, bodyMat),
+          new THREE.Mesh(legGeo, bodyMat)
+        ];
+        legs[0].position.set(-0.5, 0.05, -0.35);
+        legs[1].position.set(0.5, 0.05, -0.35);
+        legs[2].position.set(-0.5, 0.05, 0.65);
+        legs[3].position.set(0.5, 0.05, 0.65);
+        const tail = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 1.8, 4, 8), bodyMat);
+        tail.rotation.x = Math.PI / 2;
+        tail.position.set(0, 0.45, 1.55);
+        g.add(body, neck, head, hornL, hornR, wingL, wingR, tail, ...legs);
+        g.userData.core = body;
+        return g;
+      }
+
+      function createBossModel(kind) {
+        if (kind === "phoenix") return buildPhoenixBossModel();
+        if (kind === "liger") return buildLigerBossModel();
+        if (kind === "hyunmu") return buildHyunmuBossModel();
+        return buildDragoonBossModel();
+      }
 
       function getRoomBounds(roomIndex) {
         const room = rooms[roomIndex];
@@ -1856,6 +2010,69 @@
           spawnEnemy(type);
         }
         enemySpawnTimers.set(type.roomIndex, performance.now() / 1000 + 10 + Math.random() * 10);
+      });
+
+      const bossTypes = [
+        { roomIndex: 5, rareName: "피닉스 레어", name: "피닉스", kind: "phoenix", color: 0xff4b4b, ballSubtype: "flash", beamSubtype: "flame", defense: { en: 420, ballistic: 360, explosive: 320 } },
+        { roomIndex: 6, rareName: "라이거 레어", name: "라이거", kind: "liger", color: 0xffd93d, ballSubtype: "shock", beamSubtype: "laser", defense: { en: 320, ballistic: 420, explosive: 320 } },
+        { roomIndex: 7, rareName: "현무 레어", name: "현무", kind: "hyunmu", color: 0x43d66d, ballSubtype: "acid", beamSubtype: "kojima", defense: { en: 320, ballistic: 320, explosive: 420 } },
+        { roomIndex: 8, rareName: "드라군 레어", name: "드라군", kind: "dragoon", color: 0x3aa0ff, ballSubtype: "freeze", beamSubtype: "smoke", defense: { en: 380, ballistic: 380, explosive: 380 } }
+      ];
+
+      function spawnBoss(type) {
+        const room = rooms[type.roomIndex];
+        if (!room) return;
+        const spawnPos = new THREE.Vector3(room.x, floorY + enemyRadius, room.z);
+        const towardWhite = new THREE.Vector3(-room.x, 0, -room.z).normalize();
+        const spawnYaw = Math.atan2(-towardWhite.x, -towardWhite.z);
+        const mesh = createBossModel(type.kind || "dragoon");
+        mesh.position.copy(spawnPos);
+        mesh.rotation.y = spawnYaw;
+        scene.add(mesh);
+        const label = createBossLabel();
+        const now = performance.now() / 1000;
+        bosses.push({
+          mesh,
+          core: mesh.userData.core || null,
+          label,
+          kind: type.kind,
+          name: type.name,
+          rareName: type.rareName,
+          roomIndex: type.roomIndex,
+          spawnPos: spawnPos.clone(),
+          spawnYaw,
+          baseColor: new THREE.Color(type.color),
+          ap: 1000000,
+          pa: 50000,
+          defense: {
+            en: type.defense?.en ?? 360,
+            ballistic: type.defense?.ballistic ?? 360,
+            explosive: type.defense?.explosive ?? 360
+          },
+          ballSubtype: type.ballSubtype || "pulse",
+          beamSubtype: type.beamSubtype || "laser",
+          freezeStacks: [],
+          velocity: new THREE.Vector3(),
+          moveTarget: spawnPos.clone(),
+          nextMoveUpdate: now,
+          aggro: false,
+          state: "idle",
+          shieldUntil: 0,
+          ultimateUntil: 0,
+          nextUltimatePulseAt: 0,
+          nextMeleeAt: now + 2,
+          nextMoveSkillAt: now + 3,
+          nextRangedAt: now + 2.5,
+          nextDefenseAt: now + 12,
+          nextUltimateAt: now + 35,
+          meleePatternIndex: 0,
+          movePatternIndex: 0,
+          rangedPatternIndex: 0
+        });
+      }
+
+      bossTypes.forEach((type) => {
+        spawnBoss(type);
       });
 
     const player = {
@@ -2111,7 +2328,7 @@
 
       function getTargetScreenPos(target) {
         if (!target || !target.mesh) return null;
-        if (!(enemies.includes(target) || destructibleBlocks.includes(target))) return null;
+        if (!(enemies.includes(target) || bosses.includes(target) || destructibleBlocks.includes(target))) return null;
         const projected = target.mesh.position.clone().project(camera);
         if (projected.z > 1) return null;
         return {
@@ -2141,7 +2358,7 @@
           let bestD2 = Infinity;
           for (const t of lockTargets) {
             if (!t || !t.target || !t.target.mesh) continue;
-            if (!(enemies.includes(t.target) || destructibleBlocks.includes(t.target))) continue;
+            if (!(enemies.includes(t.target) || bosses.includes(t.target) || destructibleBlocks.includes(t.target))) continue;
             const inRange = t.target.mesh.position.distanceTo(player.position) <= 150;
             if (!inRange) continue;
             const dx = (t.x || centerX) - centerX;
@@ -2159,7 +2376,7 @@
         const manualRadiusSq = effectiveAutoAim ? Infinity : (manualRadius * manualRadius);
         let best = null;
         let bestD2 = manualRadiusSq;
-        const candidates = enemies.concat(destructibleBlocks);
+        const candidates = enemies.concat(bosses, destructibleBlocks);
         for (const candidate of candidates) {
           const pos = getTargetScreenPos(candidate);
           if (!pos) continue;
@@ -2178,7 +2395,7 @@
 
       function applyAimAssist(target, delta, snap = false) {
         if (!target || !target.mesh) return false;
-        if (!(enemies.includes(target) || destructibleBlocks.includes(target))) return false;
+        if (!(enemies.includes(target) || bosses.includes(target) || destructibleBlocks.includes(target))) return false;
         const eye = new THREE.Vector3(player.position.x, player.position.y + playerSize * 0.8, player.position.z);
         const yOffset = enemies.includes(target) ? (enemyRadius * 0.15) : 0;
         const aimPoint = target.mesh.position.clone().add(new THREE.Vector3(0, yOffset, 0));
@@ -2746,11 +2963,22 @@
             createStatusLink(hitPos, block.mesh.position, 0xfff06a);
             applyDestructibleDamage(block, chainPacket, { position: block.mesh.position.clone(), direct: false }, { skipStatus: true });
           }
+          for (const boss of bosses) {
+            if (boss === sourceRef) continue;
+            if (boss.mesh.position.distanceTo(hitPos) > 3) continue;
+            createStatusLink(hitPos, boss.mesh.position, 0xfff06a);
+            applyBossDamage(boss, chainPacket, { position: boss.mesh.position.clone(), direct: false }, { skipStatus: true });
+          }
         } else if (sourceKind === "player") {
           for (const enemy of enemies) {
             if (enemy.mesh.position.distanceTo(hitPos) > 3) continue;
             createStatusLink(hitPos, enemy.mesh.position, 0xfff06a);
             applyEnemyDamage(enemy, chainPacket, { position: enemy.mesh.position.clone(), direct: false }, { skipStatus: true });
+          }
+          for (const boss of bosses) {
+            if (boss.mesh.position.distanceTo(hitPos) > 3) continue;
+            createStatusLink(hitPos, boss.mesh.position, 0xfff06a);
+            applyBossDamage(boss, chainPacket, { position: boss.mesh.position.clone(), direct: false }, { skipStatus: true });
           }
           for (const block of destructibleBlocks) {
             if (block.mesh.position.distanceTo(hitPos) > 3) continue;
@@ -2935,6 +3163,38 @@
         }
       }
 
+      function applyBossDamage(boss, amountOrPacket, hitInfo = null, options = null) {
+        const result = resolveAttributeDamage(amountOrPacket, boss.defense);
+        let dmg = result.damage;
+        if (result.blocked && (!hitInfo || hitInfo.direct !== false)) {
+          spawnFloatingText(boss.mesh.position, "HIT", "#ffffff");
+          spawnFloatingText(boss.mesh.position, "DAMAGE 0", "#cfcfcf");
+        }
+        if (boss.shieldUntil && performance.now() / 1000 < boss.shieldUntil) {
+          dmg *= 0.6;
+        }
+        if (boss.pa > 0) {
+          const usePa = Math.min(boss.pa, dmg);
+          boss.pa -= usePa;
+          dmg -= usePa;
+          if (usePa > 0) spawnFloatingText(boss.mesh.position, `-PA ${Math.ceil(usePa)}`, "#7ad7ff");
+        }
+        if (dmg > 0) {
+          boss.ap = Math.max(0, boss.ap - dmg);
+          spawnFloatingText(boss.mesh.position, `-AP ${Math.ceil(dmg)}`, "#ff8a8a");
+        }
+        if (result.incoming > 0) {
+          hitGreenUntil = performance.now() / 1000 + 0.3;
+        }
+        applyOnHitStatus("enemy", boss, amountOrPacket, result, hitInfo, options);
+        if (boss.ap <= 0) {
+          scene.remove(boss.mesh);
+          if (boss.label) boss.label.remove();
+          const idx = bosses.indexOf(boss);
+          if (idx >= 0) bosses.splice(idx, 1);
+        }
+      }
+
       function applyDestructibleDamage(block, amountOrPacket, hitInfo = null, options = null) {
         const result = resolveAttributeDamage(amountOrPacket, block.defense);
         let dmg = result.damage;
@@ -3018,6 +3278,13 @@
             bestDist = d2;
           }
         }
+        for (const boss of bosses) {
+          const d2 = boss.mesh.position.distanceToSquared(pos);
+          if (!best || d2 < bestDist) {
+            best = boss;
+            bestDist = d2;
+          }
+        }
         for (const block of destructibleBlocks) {
           const d2 = block.mesh.position.distanceToSquared(pos);
           if (!best || d2 < bestDist) {
@@ -3029,7 +3296,7 @@
       }
 
       function isSeptiaTargetAlive(target) {
-        return !!(target && target.mesh && (enemies.includes(target) || destructibleBlocks.includes(target)));
+        return !!(target && target.mesh && (enemies.includes(target) || bosses.includes(target) || destructibleBlocks.includes(target)));
       }
 
       function applySeptiaDamage(target, amount, hitPos) {
@@ -3038,9 +3305,105 @@
           applyEnemyDamage(target, amount, { position: hitPos || target.mesh.position.clone(), direct: true });
           return;
         }
+        if (bosses.includes(target)) {
+          applyBossDamage(target, amount, { position: hitPos || target.mesh.position.clone(), direct: true });
+          return;
+        }
         if (destructibleBlocks.includes(target)) {
           applyDestructibleDamage(target, amount, { position: hitPos || target.mesh.position.clone(), direct: true });
         }
+      }
+
+      function spawnHostileProjectile(origin, dir, subtype, speed, life, damageValue, scale = 0.16) {
+        const profile = ATTRIBUTE_PROFILE[subtype] || ATTRIBUTE_PROFILE.pulse;
+        const projectile = new THREE.Mesh(
+          new THREE.SphereGeometry(scale, 10, 10),
+          new THREE.MeshStandardMaterial({
+            color: profile.color || 0xffffff,
+            emissive: profile.particleColor || profile.color || 0xffffff,
+            emissiveIntensity: 0.5
+          })
+        );
+        projectile.position.copy(origin);
+        projectile.userData.velocity = dir.clone().normalize().multiplyScalar(speed);
+        projectile.userData.life = life;
+        projectile.userData.subtype = subtype;
+        projectile.userData.damagePacket = buildDamagePacket(damageValue, subtype);
+        scene.add(projectile);
+        enemyProjectiles.push(projectile);
+      }
+
+      function performBossMeleePattern(boss, patternIndex, now, distToPlayer) {
+        if (patternIndex % 2 === 0) {
+          if (distToPlayer <= 2.8) {
+            applyDamage(buildDamagePacket(2800, boss.ballSubtype), { position: boss.mesh.position.clone(), direct: true });
+          }
+          spawnStatusBurst(boss.mesh.position.clone(), boss.baseColor, 18, 1.8, 0.8, "boss-melee");
+        } else {
+          if (distToPlayer <= 3.8) {
+            applyDamage(buildDamagePacket(2100, boss.beamSubtype), { position: boss.mesh.position.clone(), direct: true });
+          }
+          const ringPacket = scaleDamagePacket(buildDamagePacket(1200, boss.ballSubtype), 1);
+          createExplosionField(boss.mesh.position.clone(), 2.6, 0, boss.baseColor, ringPacket);
+        }
+        boss.nextMeleeAt = now + 4.5;
+      }
+
+      function performBossMovePattern(boss, patternIndex, now) {
+        const toPlayer = player.position.clone().sub(boss.mesh.position);
+        toPlayer.y = 0;
+        if (toPlayer.lengthSq() > 0.0001) toPlayer.normalize();
+        if (patternIndex % 2 === 0) {
+          boss.mesh.position.addScaledVector(toPlayer, 4.2);
+        } else {
+          const side = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
+          boss.mesh.position.addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * 3.4);
+        }
+        boss.nextMoveSkillAt = now + 6;
+      }
+
+      function performBossRangedPattern(boss, patternIndex, now) {
+        const toPlayer = player.position.clone().sub(boss.mesh.position);
+        const dist = Math.max(0.01, toPlayer.length());
+        const dir = toPlayer.clone().normalize();
+        if (patternIndex % 2 === 0) {
+          for (let i = 0; i < 3; i += 1) {
+            const spreadYaw = (i - 1) * 0.08;
+            const spreadDir = dir.clone().applyAxisAngle(new THREE.Vector3(0, 1, 0), spreadYaw).normalize();
+            spawnHostileProjectile(
+              boss.mesh.position.clone().addScaledVector(spreadDir, enemyRadius + 0.45),
+              spreadDir,
+              boss.ballSubtype,
+              7.5,
+              6,
+              Math.max(1200, 2200 - dist * 60),
+              0.14
+            );
+          }
+        } else {
+          applyDamage(buildDamagePacket(6500, boss.beamSubtype), { position: player.position.clone(), direct: true });
+          const beamMat = new THREE.LineBasicMaterial({ color: ATTRIBUTE_PROFILE[boss.beamSubtype]?.color || boss.baseColor });
+          const beamGeo = new THREE.BufferGeometry().setFromPoints([boss.mesh.position.clone(), player.position.clone()]);
+          const beam = new THREE.Line(beamGeo, beamMat);
+          beam.userData.life = 0.35;
+          scene.add(beam);
+          enemyBeams.push(beam);
+        }
+        boss.nextRangedAt = now + 5.5;
+      }
+
+      function triggerBossDefensePattern(boss, now) {
+        boss.shieldUntil = now + 5;
+        boss.pa = Math.min(50000, boss.pa + 10000);
+        spawnStatusBurst(boss.mesh.position.clone(), 0x9fd7ff, 28, 2.4, 1.2, "boss-shield");
+        boss.nextDefenseAt = now + 18;
+      }
+
+      function triggerBossUltimatePattern(boss, now) {
+        boss.ultimateUntil = now + 6;
+        boss.nextUltimatePulseAt = now;
+        boss.nextUltimateAt = now + 40;
+        spawnStatusBurst(boss.mesh.position.clone(), boss.baseColor, 36, 3.2, 1.6, "boss-ultimate");
       }
 
       function segmentPointDistanceSquared(a, b, p) {
@@ -3951,7 +4314,8 @@
           const mmRange = radiusUnits;
           const visibleDots = [];
           ctx.globalAlpha = 1;
-          for (const enemy of enemies) {
+          const minimapHostiles = [...enemies, ...bosses];
+          for (const enemy of minimapHostiles) {
             const dx = enemy.mesh.position.x - player.position.x;
             const dz = enemy.mesh.position.z - player.position.z;
             const dist = Math.hypot(dx, dz);
@@ -3965,7 +4329,7 @@
               ctx.beginPath();
               ctx.arc(ex, ez, 2.5, 0, Math.PI * 2);
               ctx.fill();
-              visibleDots.push({ enemy, x: ex, y: ez });
+              visibleDots.push({ target: enemy, x: ex, y: ez });
             } else {
               const ex = centerX + (rotX / dist) * mmRange * scale;
               const ez = centerY + (rotZ / dist) * mmRange * scale;
@@ -3976,7 +4340,7 @@
             }
           }
           // lock-on attackers direction on minimap edge
-          for (const enemy of enemies) {
+          for (const enemy of minimapHostiles) {
             const dx = enemy.mesh.position.x - player.position.x;
             const dz = enemy.mesh.position.z - player.position.z;
             const dist = Math.hypot(dx, dz);
@@ -3995,7 +4359,7 @@
           }
           // lock-on ring on minimap
           for (const dot of visibleDots) {
-            if (lockTargets.length > 0 && lockTargets.some((t) => t.target === dot.enemy)) {
+            if (lockTargets.length > 0 && lockTargets.some((t) => t.target === dot.target)) {
               ctx.strokeStyle = "rgba(255,60,60,0.9)";
               ctx.lineWidth = 1.5;
               ctx.beginPath();
@@ -4370,6 +4734,124 @@
             threatDirs.push({ x: localX, z: localZ });
           }
         }
+
+        for (const boss of bosses) {
+          const bossPos = boss.mesh.position;
+          const prevBossPos = bossPos.clone();
+          const toPlayerVec = player.position.clone().sub(bossPos);
+          const distToPlayer = toPlayerVec.length();
+          const playerInSameRare = playerRoomIndex === boss.roomIndex;
+
+          if (playerInSameRare) {
+            boss.aggro = true;
+            if (boss.state === "idle" || boss.state === "return") boss.state = "chase";
+          } else if (boss.aggro) {
+            boss.aggro = false;
+            boss.state = "return";
+          }
+
+          if (boss.aggro) {
+            if (now >= boss.nextMoveUpdate) {
+              boss.moveTarget = player.position.clone();
+              boss.nextMoveUpdate = now + 0.12;
+            }
+            if (now >= boss.nextDefenseAt) {
+              triggerBossDefensePattern(boss, now);
+            }
+            if (now >= boss.nextUltimateAt) {
+              triggerBossUltimatePattern(boss, now);
+            }
+            if (distToPlayer <= 4.2 && now >= boss.nextMeleeAt) {
+              performBossMeleePattern(boss, boss.meleePatternIndex, now, distToPlayer);
+              boss.meleePatternIndex = (boss.meleePatternIndex + 1) % 2;
+            }
+            if (now >= boss.nextMoveSkillAt) {
+              performBossMovePattern(boss, boss.movePatternIndex, now);
+              boss.movePatternIndex = (boss.movePatternIndex + 1) % 2;
+            }
+            if (distToPlayer <= 20 && now >= boss.nextRangedAt) {
+              performBossRangedPattern(boss, boss.rangedPatternIndex, now);
+              boss.rangedPatternIndex = (boss.rangedPatternIndex + 1) % 2;
+            }
+          } else {
+            boss.moveTarget = boss.spawnPos.clone();
+          }
+
+          if (now < boss.ultimateUntil && now >= boss.nextUltimatePulseAt) {
+            createExplosionField(bossPos.clone(), 3.2, 0, boss.baseColor, buildDamagePacket(3200, boss.beamSubtype));
+            if (playerInSameRare && distToPlayer <= 8.2) {
+              applyDamage(buildDamagePacket(3200, boss.beamSubtype), { position: bossPos.clone(), direct: false });
+            }
+            boss.nextUltimatePulseAt = now + 1.2;
+          }
+
+          const desired = boss.moveTarget.clone();
+          const toTarget = desired.sub(bossPos);
+          if (toTarget.lengthSq() > 0.0001) {
+            const freezeFactor = getEnemyFreezeFactor(boss, now);
+            const returnFactor = boss.aggro ? 1 : 0.7;
+            const moveStep = Math.min(bossMoveSpeed * freezeFactor * returnFactor * delta, toTarget.length());
+            toTarget.normalize().multiplyScalar(moveStep);
+            bossPos.add(toTarget);
+          }
+
+          if (!boss.aggro && bossPos.distanceToSquared(boss.spawnPos) < 0.16) {
+            boss.state = "idle";
+          }
+
+          const bounds = getRoomBounds(boss.roomIndex);
+          bossPos.x = clamp(bossPos.x, bounds.minX, bounds.maxX);
+          bossPos.z = clamp(bossPos.z, bounds.minZ, bounds.maxZ);
+          bossPos.y = floorY + enemyRadius;
+          boss.velocity.copy(bossPos.clone().sub(prevBossPos).divideScalar(Math.max(delta, 0.0001)));
+
+          let desiredYaw = boss.spawnYaw;
+          if (boss.aggro) {
+            const forward = player.position.clone().sub(bossPos);
+            forward.y = 0;
+            if (forward.lengthSq() > 0.0001) {
+              desiredYaw = Math.atan2(-forward.x, -forward.z);
+            }
+          } else if (bossPos.distanceToSquared(boss.spawnPos) > 0.1) {
+            const backToSpawn = boss.spawnPos.clone().sub(bossPos);
+            backToSpawn.y = 0;
+            if (backToSpawn.lengthSq() > 0.0001) {
+              desiredYaw = Math.atan2(-backToSpawn.x, -backToSpawn.z);
+            }
+          }
+          const yawDiff = Math.atan2(Math.sin(desiredYaw - boss.mesh.rotation.y), Math.cos(desiredYaw - boss.mesh.rotation.y));
+          boss.mesh.rotation.y += yawDiff * Math.min(1, 4.5 * delta);
+
+          if (boss.core) {
+            const shielding = now < boss.shieldUntil;
+            const emissiveBoost = shielding ? 0.9 : 0.35;
+            if (boss.core.material && boss.core.material.emissive) {
+              boss.core.material.emissive.copy(boss.baseColor).multiplyScalar(emissiveBoost);
+            }
+          }
+
+          if (boss.label) {
+            boss.label.textContent = `${boss.name} AP ${Math.ceil(boss.ap)} / PA ${Math.ceil(boss.pa)}`;
+            const labelPos = bossPos.clone().add(new THREE.Vector3(0, enemyRadius + 1.15, 0));
+            labelPos.project(camera);
+            const x = (labelPos.x * 0.5 + 0.5) * window.innerWidth;
+            const y = (-labelPos.y * 0.5 + 0.5) * window.innerHeight;
+            boss.label.style.left = `${x}px`;
+            boss.label.style.top = `${y}px`;
+            boss.label.style.transform = "translate(-50%, -100%)";
+            boss.label.style.display = (!sensoryBlind && labelPos.z < 1) ? "block" : "none";
+            boss.label.classList.toggle("locked", boss === lockTarget);
+          }
+
+          if (playerInSameRare) {
+            anyThreat = true;
+            const dx = bossPos.x - player.position.x;
+            const dz = bossPos.z - player.position.z;
+            const localX = dx * Math.cos(yaw) - dz * Math.sin(yaw);
+            const localZ = dx * Math.sin(yaw) + dz * Math.cos(yaw);
+            threatDirs.push({ x: localX, z: localZ });
+          }
+        }
         if (lockWarning) {
           lockWarning.style.display = anyThreat ? "block" : "none";
         }
@@ -4425,6 +4907,9 @@
           const lockCandidates = [];
           for (const candidate of enemies) {
             lockCandidates.push({ obj: candidate, pos: candidate.mesh.position });
+          }
+          for (const boss of bosses) {
+            lockCandidates.push({ obj: boss, pos: boss.mesh.position });
           }
           for (const block of destructibleBlocks) {
             lockCandidates.push({ obj: block, pos: block.mesh.position });
@@ -4487,7 +4972,7 @@
           const targetAlive = !!(
             aimAssistTarget &&
             aimAssistTarget.mesh &&
-            (enemies.includes(aimAssistTarget) || destructibleBlocks.includes(aimAssistTarget))
+            (enemies.includes(aimAssistTarget) || bosses.includes(aimAssistTarget) || destructibleBlocks.includes(aimAssistTarget))
           );
           const inRange = targetAlive
             ? isTargetInAimAssistRange(aimAssistTarget, effectiveAutoAim, centerX, centerY, lockCircleOffset)
@@ -4619,7 +5104,7 @@
           const bulletPacket = b.userData.damagePacket || buildDamagePacket(0, b.userData.subtype || DAMAGE_SUBTYPE.FLAME);
           const bulletProfile = ATTRIBUTE_PROFILE[b.userData.subtype] || ATTRIBUTE_PROFILE.flame;
           let homingTarget = b.userData.homingTarget;
-          const homingAlive = !!(homingTarget && homingTarget.mesh && (enemies.includes(homingTarget) || destructibleBlocks.includes(homingTarget)));
+          const homingAlive = !!(homingTarget && homingTarget.mesh && (enemies.includes(homingTarget) || bosses.includes(homingTarget) || destructibleBlocks.includes(homingTarget)));
           if (!homingAlive) {
             b.userData.homingTarget = null;
             homingTarget = null;
@@ -4627,7 +5112,7 @@
               const assistAlive = !!(
                 aimAssistTarget &&
                 aimAssistTarget.mesh &&
-                (enemies.includes(aimAssistTarget) || destructibleBlocks.includes(aimAssistTarget))
+                (enemies.includes(aimAssistTarget) || bosses.includes(aimAssistTarget) || destructibleBlocks.includes(aimAssistTarget))
               );
               if (assistAlive) {
                 homingTarget = aimAssistTarget;
@@ -4708,6 +5193,16 @@
                 break;
               }
             }
+            if (!hit) {
+              for (const boss of bosses) {
+                const d2 = segmentPointDistanceSquared(prevPos, b.position, boss.mesh.position);
+                if (d2 <= hitRadiusSq * 1.8) {
+                  applyBossDamage(boss, bulletPacket, { position: b.position.clone(), direct: true });
+                  hit = true;
+                  break;
+                }
+              }
+            }
           }
           if (hit) {
             const fxColor = b.userData.color || 0xffffff;
@@ -4779,7 +5274,7 @@
               enemyProjectiles.splice(i, 1);
               continue;
             }
-            if (p.userData.life <= 0 || p.position.distanceTo(player.position) > 12) {
+            if (p.userData.life <= 0 || p.position.distanceTo(player.position) > 30) {
               scene.remove(p);
               enemyProjectiles.splice(i, 1);
             }
@@ -4821,6 +5316,11 @@
             for (const enemy of enemies) {
               if (enemy.mesh.position.distanceTo(fx.position) <= radius) {
                 applyEnemyDamage(enemy, packetPerTick, { position: fx.position.clone(), direct: false });
+              }
+            }
+            for (const boss of bosses) {
+              if (boss.mesh.position.distanceTo(fx.position) <= radius) {
+                applyBossDamage(boss, packetPerTick, { position: fx.position.clone(), direct: false });
               }
             }
             for (const block of destructibleBlocks) {
@@ -5003,6 +5503,14 @@
                 }
               }
             }
+            for (const boss of bosses) {
+              if (boss.mesh.position.distanceTo(player.position) <= 10) {
+                boss.pa = Math.max(0, boss.pa - 10000);
+                if (boss.pa === 0) {
+                  boss.ap = Math.max(0, boss.ap - 10000);
+                }
+              }
+            }
             expansionShockDone = true;
           }
           const dps = (dist) => {
@@ -5023,6 +5531,13 @@
               if (dmg > 0) {
                 enemy.ap = Math.max(0, enemy.ap - dmg);
               }
+            }
+          }
+          for (const boss of bosses) {
+            const dist = boss.mesh.position.distanceTo(player.position);
+            const damagePerSecond = dps(dist);
+            if (damagePerSecond > 0) {
+              applyBossDamage(boss, damagePerSecond * delta, { position: boss.mesh.position.clone(), direct: false }, { skipStatus: true });
             }
           }
         }
