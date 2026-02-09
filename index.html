@@ -1763,7 +1763,7 @@
       const enemySpawnTimers = new Map();
       const enemyMoveSpeed = 3;
       const enemyAvoidRadius = 2;
-      const bossMoveSpeed = enemyMoveSpeed;
+      const bossMoveSpeed = enemyMoveSpeed * 1.8;
 
       function createBossLabel() {
         const label = document.createElement("div");
@@ -1775,87 +1775,110 @@
 
       function buildPhoenixBossModel() {
         const g = new THREE.Group();
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff3a2f, emissive: 0x7a1010, roughness: 0.35, metalness: 0.28 });
-        const emberMat = new THREE.MeshStandardMaterial({ color: 0xff8f2f, emissive: 0x8a3000, roughness: 0.25, metalness: 0.1 });
-        const darkMat = new THREE.MeshStandardMaterial({ color: 0x631818, roughness: 0.6, metalness: 0.18 });
-        const body = new THREE.Mesh(new THREE.SphereGeometry(0.9, 24, 20), bodyMat);
-        body.scale.set(0.88, 0.72, 1.62);
-        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.55, 20, 16), emberMat);
-        chest.position.set(0, 0.02, -0.62);
-        chest.scale.set(0.8, 0.65, 1.2);
-        const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.2, 0.5, 6, 10), bodyMat);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff4938, emissive: 0x821811, roughness: 0.35, metalness: 0.28 });
+        const featherMat = new THREE.MeshStandardMaterial({ color: 0xff8f2f, emissive: 0x8a3000, roughness: 0.24, metalness: 0.12 });
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x5c1b1b, roughness: 0.62, metalness: 0.2 });
+        const beakMat = new THREE.MeshStandardMaterial({ color: 0xffc16a, roughness: 0.45, metalness: 0.08 });
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff0a0, emissive: 0xffaa55, roughness: 0.2 });
+
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 1.7, 8, 16), bodyMat);
+        body.rotation.z = Math.PI / 2;
+        body.position.set(0, 0.25, 0.1);
+        body.scale.set(1, 1, 0.62);
+
+        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.46, 22, 18), featherMat);
+        chest.position.set(0, 0.22, -0.62);
+        chest.scale.set(0.84, 0.62, 1.05);
+
+        const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.14, 0.72, 6, 12), bodyMat);
         neck.rotation.x = Math.PI / 2;
-        neck.position.set(0, 0.35, -0.95);
-        const head = new THREE.Mesh(new THREE.SphereGeometry(0.42, 20, 16), bodyMat);
-        head.position.set(0, 0.48, -1.23);
-        const crest1 = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.5, 10), emberMat);
-        crest1.position.set(0, 0.98, -1.24);
-        const crest2 = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.4, 10), emberMat);
-        crest2.position.set(-0.12, 0.85, -1.2);
-        crest2.rotation.z = -0.3;
-        const crest3 = crest2.clone();
-        crest3.position.x = 0.12;
-        crest3.rotation.z = 0.3;
-        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), new THREE.MeshStandardMaterial({ color: 0xfff0a0, emissive: 0xffaa55 }));
-        eyeL.position.set(-0.12, 0.54, -1.56);
+        neck.position.set(0, 0.38, -1.02);
+        const head = new THREE.Mesh(new THREE.SphereGeometry(0.34, 22, 16), bodyMat);
+        head.position.set(0, 0.52, -1.52);
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.045, 10, 10), eyeMat);
+        eyeL.position.set(-0.12, 0.58, -1.76);
         const eyeR = eyeL.clone();
         eyeR.position.x = 0.12;
-        const beakTop = new THREE.Mesh(new THREE.ConeGeometry(0.13, 0.5, 10), new THREE.MeshStandardMaterial({ color: 0xffc16a, roughness: 0.45 }));
+        const beakTop = new THREE.Mesh(new THREE.ConeGeometry(0.1, 0.54, 10), beakMat);
         beakTop.rotation.x = Math.PI / 2;
-        beakTop.position.set(0, 0.44, -1.7);
-        const beakBottom = new THREE.Mesh(new THREE.ConeGeometry(0.09, 0.28, 10), new THREE.MeshStandardMaterial({ color: 0xe0a354, roughness: 0.5 }));
+        beakTop.position.set(0, 0.48, -1.96);
+        const beakBottom = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.34, 10), new THREE.MeshStandardMaterial({ color: 0xde9d4d, roughness: 0.5 }));
         beakBottom.rotation.x = Math.PI / 2;
-        beakBottom.position.set(0, 0.32, -1.56);
-        const wingArmL = new THREE.Mesh(new THREE.CapsuleGeometry(0.16, 1.0, 6, 10), darkMat);
-        wingArmL.rotation.z = -1.05;
-        wingArmL.rotation.y = 0.35;
-        wingArmL.position.set(-0.95, 0.18, -0.2);
+        beakBottom.position.set(0, 0.37, -1.81);
+
+        const crestCenter = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.5, 10), featherMat);
+        crestCenter.position.set(0, 0.98, -1.48);
+        const crestL = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.42, 10), featherMat);
+        crestL.position.set(-0.11, 0.88, -1.45);
+        crestL.rotation.z = -0.34;
+        const crestR = crestL.clone();
+        crestR.position.x = 0.11;
+        crestR.rotation.z = 0.34;
+
+        const wingArmL = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 1.35, 6, 12), darkMat);
+        wingArmL.rotation.z = -1.18;
+        wingArmL.rotation.y = 0.26;
+        wingArmL.position.set(-0.88, 0.16, -0.1);
         const wingArmR = wingArmL.clone();
-        wingArmR.rotation.z = 1.05;
-        wingArmR.position.x = 0.95;
-        const wingBladeL = new THREE.Mesh(new THREE.ConeGeometry(0.42, 1.8, 16), emberMat);
-        wingBladeL.rotation.z = -Math.PI / 2;
-        wingBladeL.rotation.y = 0.48;
-        wingBladeL.position.set(-1.52, 0.03, -0.08);
-        const wingBladeL2 = new THREE.Mesh(new THREE.ConeGeometry(0.3, 1.5, 12), emberMat);
-        wingBladeL2.rotation.z = -Math.PI / 2;
-        wingBladeL2.rotation.y = 0.68;
-        wingBladeL2.position.set(-1.35, -0.2, 0.22);
-        const wingBladeR = wingBladeL.clone();
-        wingBladeR.rotation.z = Math.PI / 2;
-        wingBladeR.position.x = 1.52;
-        const wingBladeR2 = wingBladeL2.clone();
-        wingBladeR2.rotation.z = Math.PI / 2;
-        wingBladeR2.position.x = 1.35;
-        const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.11, 0.08, 0.55, 8), darkMat);
-        legL.position.set(-0.25, -0.3, 0.05);
+        wingArmR.rotation.z = 1.18;
+        wingArmR.position.x = 0.88;
+
+        const wingTipL = new THREE.Mesh(new THREE.CapsuleGeometry(0.08, 1.1, 6, 10), darkMat);
+        wingTipL.rotation.z = -1.34;
+        wingTipL.rotation.y = 0.45;
+        wingTipL.position.set(-1.72, -0.12, -0.02);
+        const wingTipR = wingTipL.clone();
+        wingTipR.rotation.z = 1.34;
+        wingTipR.position.x = 1.72;
+
+        const wingFeathers = [];
+        for (let i = 0; i < 6; i += 1) {
+          const feather = new THREE.Mesh(new THREE.ConeGeometry(0.12 + i * 0.02, 0.7 + i * 0.12, 10), featherMat);
+          feather.rotation.z = -Math.PI / 2;
+          feather.rotation.y = 0.45 + i * 0.07;
+          feather.position.set(-1.1 - i * 0.18, -0.1 - i * 0.07, 0.14 + i * 0.05);
+          wingFeathers.push(feather);
+          const mirror = feather.clone();
+          mirror.rotation.z = Math.PI / 2;
+          mirror.position.x = -feather.position.x;
+          wingFeathers.push(mirror);
+        }
+
+        const legL = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.06, 0.58, 8), darkMat);
+        legL.position.set(-0.22, -0.28, 0.08);
         const legR = legL.clone();
-        legR.position.x = 0.25;
-        const clawL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.24, 8), new THREE.MeshStandardMaterial({ color: 0xffd28a }));
+        legR.position.x = 0.22;
+        const clawL = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.24, 8), beakMat);
         clawL.rotation.x = Math.PI;
-        clawL.position.set(-0.25, -0.62, -0.07);
+        clawL.position.set(-0.22, -0.62, -0.02);
         const clawR = clawL.clone();
-        clawR.position.x = 0.25;
-        const tailBase = new THREE.Mesh(new THREE.CapsuleGeometry(0.18, 0.8, 6, 10), darkMat);
+        clawR.position.x = 0.22;
+
+        const tailBase = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.85, 6, 10), darkMat);
         tailBase.rotation.x = -Math.PI / 2;
-        tailBase.position.set(0, 0, 1.18);
-        const tailFlame1 = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.95, 14), emberMat);
-        tailFlame1.rotation.x = -Math.PI / 2;
-        tailFlame1.position.set(0, 0.08, 1.75);
-        const tailFlame2 = new THREE.Mesh(new THREE.ConeGeometry(0.15, 0.72, 12), new THREE.MeshStandardMaterial({ color: 0xff4a1f, emissive: 0xb81f00 }));
-        tailFlame2.rotation.x = -Math.PI / 2;
-        tailFlame2.position.set(0, 0.12, 2.2);
-        g.add(body, chest, neck, head, crest1, crest2, crest3, eyeL, eyeR, beakTop, beakBottom, wingArmL, wingArmR, wingBladeL, wingBladeL2, wingBladeR, wingBladeR2, legL, legR, clawL, clawR, tailBase, tailFlame1, tailFlame2);
+        tailBase.position.set(0, 0.04, 1.2);
+        const tailFan = [];
+        for (let i = -2; i <= 2; i += 1) {
+          const tailFeather = new THREE.Mesh(new THREE.ConeGeometry(0.13 + Math.abs(i) * 0.02, 1.0 + Math.abs(i) * 0.15, 12), featherMat);
+          tailFeather.rotation.x = -Math.PI / 2;
+          tailFeather.position.set(i * 0.16, 0.1 + Math.abs(i) * 0.03, 1.82 + Math.abs(i) * 0.08);
+          tailFan.push(tailFeather);
+        }
+        const tailTip = new THREE.Mesh(new THREE.ConeGeometry(0.14, 0.82, 12), new THREE.MeshStandardMaterial({ color: 0xff4a1f, emissive: 0xb81f00 }));
+        tailTip.rotation.x = -Math.PI / 2;
+        tailTip.position.set(0, 0.14, 2.42);
+
+        g.add(body, chest, neck, head, eyeL, eyeR, beakTop, beakBottom, crestCenter, crestL, crestR, wingArmL, wingArmR, wingTipL, wingTipR, ...wingFeathers, legL, legR, clawL, clawR, tailBase, ...tailFan, tailTip);
         g.userData.core = body;
         g.userData.anim = {
           type: "phoenix",
           wingL: wingArmL,
           wingR: wingArmR,
-          wingTipL: wingBladeL,
-          wingTipR: wingBladeR,
+          wingTipL,
+          wingTipR,
           head,
           tail: tailBase,
-          tailTip: tailFlame2
+          tailTip
         };
         g.scale.setScalar(3);
         return g;
@@ -1863,73 +1886,92 @@
 
       function buildLigerBossModel() {
         const g = new THREE.Group();
-        const furMat = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x4a3a00, roughness: 0.6, metalness: 0.15 });
-        const stripeMat = new THREE.MeshStandardMaterial({ color: 0x7f5d00, roughness: 0.55, metalness: 0.2 });
-        const fangMat = new THREE.MeshStandardMaterial({ color: 0xf8f8f8, roughness: 0.35, metalness: 0.05 });
-        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff58f, emissive: 0xffd84a, roughness: 0.3 });
-        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.42, 2.2, 8, 14), furMat);
+        const furMat = new THREE.MeshStandardMaterial({ color: 0xffd93d, emissive: 0x4a3a00, roughness: 0.62, metalness: 0.15 });
+        const stripeMat = new THREE.MeshStandardMaterial({ color: 0x6e4f00, roughness: 0.55, metalness: 0.18 });
+        const fangMat = new THREE.MeshStandardMaterial({ color: 0xf9f9f9, roughness: 0.33, metalness: 0.04 });
+        const eyeMat = new THREE.MeshStandardMaterial({ color: 0xfff58f, emissive: 0xffd84a, roughness: 0.25 });
+
+        const body = new THREE.Mesh(new THREE.CapsuleGeometry(0.34, 2.35, 8, 16), furMat);
         body.rotation.z = Math.PI / 2;
-        body.position.set(0, 0.38, 0.1);
-        body.scale.set(1, 1, 0.72);
-        const shoulder = new THREE.Mesh(new THREE.SphereGeometry(0.44, 16, 14), furMat);
-        shoulder.position.set(0, 0.45, -0.45);
-        shoulder.scale.set(1, 0.85, 1.2);
-        const hip = new THREE.Mesh(new THREE.SphereGeometry(0.36, 16, 14), furMat);
-        hip.position.set(0, 0.35, 0.85);
-        hip.scale.set(1, 0.8, 1.25);
-        const head = new THREE.Mesh(new THREE.BoxGeometry(1.05, 0.78, 0.88), furMat);
-        head.position.set(0, 0.5, -1.22);
-        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.76, 0.28, 0.62), furMat);
-        jaw.position.set(0, 0.2, -1.34);
-        const mane = new THREE.Mesh(new THREE.TorusGeometry(0.55, 0.12, 10, 22), new THREE.MeshStandardMaterial({ color: 0xffec84, emissive: 0x665500 }));
-        mane.rotation.x = Math.PI / 2;
-        mane.position.set(0, 0.48, -0.98);
-        const stripe1 = new THREE.Mesh(new THREE.BoxGeometry(1.9, 0.1, 0.95), stripeMat);
-        stripe1.position.set(0, 0.73, 0.1);
-        const stripe2 = new THREE.Mesh(new THREE.BoxGeometry(0.95, 0.08, 0.6), stripeMat);
-        stripe2.position.set(0, 0.65, -1.24);
-        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), eyeMat);
-        eyeL.position.set(-0.2, 0.55, -1.65);
+        body.position.set(0, 0.36, 0.08);
+        body.scale.set(1, 1, 0.54);
+        const chest = new THREE.Mesh(new THREE.SphereGeometry(0.34, 18, 14), furMat);
+        chest.position.set(0, 0.44, -0.7);
+        chest.scale.set(1, 0.86, 0.92);
+        const hip = new THREE.Mesh(new THREE.SphereGeometry(0.3, 16, 14), furMat);
+        hip.position.set(0, 0.34, 1.02);
+        hip.scale.set(1, 0.82, 0.88);
+
+        const neck = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.55, 6, 10), furMat);
+        neck.rotation.x = Math.PI / 2;
+        neck.position.set(0, 0.47, -1.16);
+        const head = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.64, 0.84), furMat);
+        head.position.set(0, 0.55, -1.62);
+        const snout = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.26, 0.48), furMat);
+        snout.position.set(0, 0.39, -2.02);
+        const jaw = new THREE.Mesh(new THREE.BoxGeometry(0.38, 0.12, 0.42), new THREE.MeshStandardMaterial({ color: 0xd9be3a, roughness: 0.55 }));
+        jaw.position.set(0, 0.28, -1.95);
+        const earL = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.16, 8), furMat);
+        earL.position.set(-0.24, 0.88, -1.62);
+        const earR = earL.clone();
+        earR.position.x = 0.24;
+        const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.05, 10, 10), eyeMat);
+        eyeL.position.set(-0.16, 0.58, -2.0);
         const eyeR = eyeL.clone();
-        eyeR.position.x = 0.2;
-        const fangL = new THREE.Mesh(new THREE.ConeGeometry(0.08, 0.46, 8), fangMat);
+        eyeR.position.x = 0.16;
+        const fangL = new THREE.Mesh(new THREE.ConeGeometry(0.06, 0.42, 8), fangMat);
         fangL.rotation.x = Math.PI;
-        fangL.position.set(-0.2, 0.06, -1.58);
+        fangL.position.set(-0.14, 0.18, -2.08);
         const fangR = fangL.clone();
-        fangR.position.x = 0.2;
-        const legGeo = new THREE.CylinderGeometry(0.14, 0.16, 0.78, 10);
-        const legL1 = new THREE.Mesh(legGeo, furMat);
-        const legL2 = new THREE.Mesh(legGeo, furMat);
-        const legR1 = new THREE.Mesh(legGeo, furMat);
-        const legR2 = new THREE.Mesh(legGeo, furMat);
-        legL1.position.set(-0.64, -0.12, -0.32);
-        legR1.position.set(0.64, -0.12, -0.32);
-        legL2.position.set(-0.64, -0.12, 0.68);
-        legR2.position.set(0.64, -0.12, 0.68);
-        const pawGeo = new THREE.SphereGeometry(0.16, 10, 10);
-        const pawL1 = new THREE.Mesh(pawGeo, furMat);
-        pawL1.position.set(-0.64, -0.52, -0.32);
-        const pawR1 = pawL1.clone();
-        pawR1.position.x = 0.64;
-        const pawL2 = pawL1.clone();
-        pawL2.position.set(-0.64, -0.52, 0.68);
-        const pawR2 = pawL1.clone();
-        pawR2.position.set(0.64, -0.52, 0.68);
-        const tailBase = new THREE.Mesh(new THREE.CapsuleGeometry(0.12, 0.75, 6, 10), furMat);
+        fangR.position.x = 0.14;
+
+        const stripeParts = [];
+        for (let i = 0; i < 6; i += 1) {
+          const stripe = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.18, 0.5 - i * 0.04), stripeMat);
+          stripe.position.set(0, 0.62, -0.55 + i * 0.36);
+          stripeParts.push(stripe);
+        }
+
+        const legUpperGeo = new THREE.CapsuleGeometry(0.09, 0.42, 4, 8);
+        const legLowerGeo = new THREE.CapsuleGeometry(0.08, 0.34, 4, 8);
+        const pawsGeo = new THREE.SphereGeometry(0.11, 10, 10);
+        const legs = [];
+        const bases = [
+          new THREE.Vector3(-0.44, 0.0, -0.72),
+          new THREE.Vector3(0.44, 0.0, -0.72),
+          new THREE.Vector3(-0.44, 0.0, 0.78),
+          new THREE.Vector3(0.44, 0.0, 0.78)
+        ];
+        for (const base of bases) {
+          const upper = new THREE.Mesh(legUpperGeo, furMat);
+          upper.position.copy(base.clone().add(new THREE.Vector3(0, -0.12, 0)));
+          const lower = new THREE.Mesh(legLowerGeo, furMat);
+          lower.position.copy(base.clone().add(new THREE.Vector3(0, -0.46, 0.03)));
+          const paw = new THREE.Mesh(pawsGeo, furMat);
+          paw.position.copy(base.clone().add(new THREE.Vector3(0, -0.66, -0.02)));
+          legs.push(upper, lower, paw);
+        }
+
+        const mane = new THREE.Mesh(new THREE.TorusGeometry(0.42, 0.08, 12, 28), new THREE.MeshStandardMaterial({ color: 0xffef93, emissive: 0x665500 }));
+        mane.rotation.x = Math.PI / 2;
+        mane.position.set(0, 0.56, -1.28);
+
+        const tailBase = new THREE.Mesh(new THREE.CapsuleGeometry(0.09, 0.65, 6, 10), furMat);
         tailBase.rotation.x = Math.PI / 2;
-        tailBase.position.set(0, 0.42, 1.35);
-        const bolt1 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.6), new THREE.MeshStandardMaterial({ color: 0xfff474, emissive: 0xaa9c22 }));
-        bolt1.position.set(0.12, 0.7, 1.85);
-        const bolt2 = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.12, 0.55), new THREE.MeshStandardMaterial({ color: 0xfff474, emissive: 0xaa9c22 }));
-        bolt2.position.set(-0.12, 0.95, 2.2);
-        const bolt3 = new THREE.Mesh(new THREE.BoxGeometry(0.11, 0.11, 0.42), new THREE.MeshStandardMaterial({ color: 0xfff474, emissive: 0xaa9c22 }));
-        bolt3.position.set(0.1, 1.13, 2.48);
-        g.add(body, shoulder, hip, head, jaw, mane, stripe1, stripe2, eyeL, eyeR, fangL, fangR, legL1, legL2, legR1, legR2, pawL1, pawR1, pawL2, pawR2, tailBase, bolt1, bolt2, bolt3);
+        tailBase.position.set(0, 0.42, 1.48);
+        const bolt1 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.56), new THREE.MeshStandardMaterial({ color: 0xfff474, emissive: 0xaa9c22 }));
+        bolt1.position.set(0.1, 0.64, 1.92);
+        const bolt2 = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.1, 0.48), new THREE.MeshStandardMaterial({ color: 0xfff474, emissive: 0xaa9c22 }));
+        bolt2.position.set(-0.08, 0.84, 2.24);
+        const bolt3 = new THREE.Mesh(new THREE.BoxGeometry(0.09, 0.09, 0.4), new THREE.MeshStandardMaterial({ color: 0xfff474, emissive: 0xaa9c22 }));
+        bolt3.position.set(0.06, 1.0, 2.5);
+
+        g.add(body, chest, hip, neck, head, snout, jaw, earL, earR, eyeL, eyeR, fangL, fangR, mane, ...stripeParts, ...legs, tailBase, bolt1, bolt2, bolt3);
         g.userData.core = body;
         g.userData.anim = {
           type: "liger",
           head,
-          shoulder,
+          shoulder: chest,
           tail: tailBase,
           bolt1,
           bolt2,
@@ -2292,11 +2334,11 @@
           shieldUntil: 0,
           ultimateUntil: 0,
           nextUltimatePulseAt: 0,
-          nextMeleeAt: now + 2,
-          nextMoveSkillAt: now + 3,
-          nextRangedAt: now + 2.5,
-          nextDefenseAt: now + 12,
-          nextUltimateAt: now + 35,
+          nextMeleeAt: now + 1.2,
+          nextMoveSkillAt: now + 1.8,
+          nextRangedAt: now + 1.5,
+          nextDefenseAt: now + 7,
+          nextUltimateAt: now + 20,
           meleePatternIndex: 0,
           movePatternIndex: 0,
           rangedPatternIndex: 0
@@ -3578,7 +3620,7 @@
           const ringPacket = scaleDamagePacket(buildDamagePacket(1200, boss.ballSubtype), 1);
           createExplosionField(boss.mesh.position.clone(), 2.6, 0, boss.baseColor, ringPacket);
         }
-        boss.nextMeleeAt = now + 4.5;
+        boss.nextMeleeAt = now + 2.2;
       }
 
       function performBossMovePattern(boss, patternIndex, now) {
@@ -3591,7 +3633,7 @@
           const side = new THREE.Vector3(-toPlayer.z, 0, toPlayer.x).normalize();
           boss.mesh.position.addScaledVector(side, (Math.random() < 0.5 ? -1 : 1) * 3.4);
         }
-        boss.nextMoveSkillAt = now + 6;
+        boss.nextMoveSkillAt = now + 3.1;
       }
 
       function performBossRangedPattern(boss, patternIndex, now) {
@@ -3621,20 +3663,20 @@
           scene.add(beam);
           enemyBeams.push(beam);
         }
-        boss.nextRangedAt = now + 5.5;
+        boss.nextRangedAt = now + 2.8;
       }
 
       function triggerBossDefensePattern(boss, now) {
         boss.shieldUntil = now + 5;
         boss.pa = Math.min(50000, boss.pa + 10000);
         spawnStatusBurst(boss.mesh.position.clone(), 0x9fd7ff, 28, 2.4, 1.2, "boss-shield");
-        boss.nextDefenseAt = now + 18;
+        boss.nextDefenseAt = now + 10;
       }
 
       function triggerBossUltimatePattern(boss, now) {
         boss.ultimateUntil = now + 6;
         boss.nextUltimatePulseAt = now;
-        boss.nextUltimateAt = now + 40;
+        boss.nextUltimateAt = now + 25;
         spawnStatusBurst(boss.mesh.position.clone(), boss.baseColor, 36, 3.2, 1.6, "boss-ultimate");
       }
 
@@ -4985,7 +5027,7 @@
           if (boss.aggro) {
             if (now >= boss.nextMoveUpdate) {
               boss.moveTarget = player.position.clone();
-              boss.nextMoveUpdate = now + 0.12;
+              boss.nextMoveUpdate = now + 0.08;
             }
             if (now >= boss.nextDefenseAt) {
               triggerBossDefensePattern(boss, now);
@@ -4993,7 +5035,7 @@
             if (now >= boss.nextUltimateAt) {
               triggerBossUltimatePattern(boss, now);
             }
-            if (distToPlayer <= 4.2 && now >= boss.nextMeleeAt) {
+            if (distToPlayer <= 5.2 && now >= boss.nextMeleeAt) {
               performBossMeleePattern(boss, boss.meleePatternIndex, now, distToPlayer);
               boss.meleePatternIndex = (boss.meleePatternIndex + 1) % 2;
             }
@@ -5001,7 +5043,7 @@
               performBossMovePattern(boss, boss.movePatternIndex, now);
               boss.movePatternIndex = (boss.movePatternIndex + 1) % 2;
             }
-            if (distToPlayer <= 20 && now >= boss.nextRangedAt) {
+            if (distToPlayer <= 26 && now >= boss.nextRangedAt) {
               performBossRangedPattern(boss, boss.rangedPatternIndex, now);
               boss.rangedPatternIndex = (boss.rangedPatternIndex + 1) % 2;
             }
@@ -5014,14 +5056,14 @@
             if (playerInSameRare && distToPlayer <= 8.2) {
               applyDamage(buildDamagePacket(3200, boss.beamSubtype), { position: bossPos.clone(), direct: false });
             }
-            boss.nextUltimatePulseAt = now + 1.2;
+            boss.nextUltimatePulseAt = now + 0.75;
           }
 
           const desired = boss.moveTarget.clone();
           const toTarget = desired.sub(bossPos);
           if (toTarget.lengthSq() > 0.0001) {
             const freezeFactor = getEnemyFreezeFactor(boss, now);
-            const returnFactor = boss.aggro ? 1 : 0.7;
+            const returnFactor = boss.aggro ? 1.35 : 0.85;
             const moveStep = Math.min(bossMoveSpeed * freezeFactor * returnFactor * delta, toTarget.length());
             toTarget.normalize().multiplyScalar(moveStep);
             bossPos.add(toTarget);
