@@ -802,6 +802,11 @@
       background: linear-gradient(140deg, #c6e8ff, #4aa8ff 62%, #1d4f8d);
       box-shadow: 0 0 10px rgba(74, 168, 255, 0.42);
     }
+    .gridIcon.coreLocked .coreGem,
+    .detailIconLarge.coreLocked .coreGem {
+      filter: grayscale(1) brightness(0.5);
+      box-shadow: 0 0 8px rgba(170, 170, 170, 0.2);
+    }
     .gridLabel {
       font-size: 10px;
       color: rgba(255, 255, 255, 0.75);
@@ -4870,7 +4875,9 @@
       detailIconEl.className = "detailIconLarge";
       if (entryType === "item_core" || entryType === "codex_core") {
         const coreClass = getCoreIconClass(baseName || "");
+        const unlocked = isBossCoreName(baseName) ? bossCoreCodexUnlocked[baseName] : true;
         detailIconEl.classList.add("coreModel");
+        if (!unlocked) detailIconEl.classList.add("coreLocked");
         if (coreClass) detailIconEl.classList.add(coreClass);
         detailIconEl.innerHTML = `<div class="coreGem"></div>`;
       }
@@ -4928,11 +4935,12 @@
 
     function getEntryDisplayDesc(entryType, baseName, baseDesc) {
       if (entryType === "item_core" && isBossCoreName(baseName)) {
+        if (!bossCoreCodexUnlocked[baseName]) return "-";
         return `${baseDesc} 현재 보유 수량: ${bossCoreInventory[baseName]}`;
       }
       if (entryType === "codex_core" && isBossCoreName(baseName)) {
-        const status = bossCoreCodexUnlocked[baseName] ? "해금됨" : "미해금";
-        return `${baseDesc} 현재 도감 상태: ${status}`;
+        if (!bossCoreCodexUnlocked[baseName]) return "-";
+        return baseDesc;
       }
       return baseDesc || `${baseName}의 설명이 이 영역에 표시됩니다.`;
     }
@@ -4943,10 +4951,22 @@
         const baseName = entry.dataset.baseName || entry.dataset.name || "항목";
         const entryType = entry.dataset.entryType || "generic";
         const baseDesc = entry.dataset.baseDesc || "";
+        const unlocked = isBossCoreName(baseName) ? bossCoreCodexUnlocked[baseName] : true;
+        if (entryType === "item_core") {
+          entry.style.display = unlocked ? "" : "none";
+        }
         entry.dataset.name = getEntryDisplayName(entryType, baseName);
         entry.dataset.desc = getEntryDisplayDesc(entryType, baseName, baseDesc);
         const label = entry.querySelector(".gridLabel");
         if (label) label.textContent = entry.dataset.name;
+        const iconEl = entry.querySelector(".gridIcon");
+        if (iconEl) {
+          if (entryType === "codex_core" && !unlocked) {
+            iconEl.classList.add("coreLocked");
+          } else {
+            iconEl.classList.remove("coreLocked");
+          }
+        }
       });
 
       const codexBaseName = codexDetailName.dataset.baseName || "";
@@ -4955,6 +4975,7 @@
       if (codexEntryType === "codex_core" && isBossCoreName(codexBaseName)) {
         codexDetailName.textContent = getEntryDisplayName(codexEntryType, codexBaseName);
         codexDetailDesc.textContent = getEntryDisplayDesc(codexEntryType, codexBaseName, codexBaseDesc);
+        applyDetailIcon(codexDetailIcon, codexEntryType, codexBaseName);
       }
 
       const itemBaseName = itemDetailName.dataset.baseName || "";
@@ -4963,6 +4984,7 @@
       if (itemEntryType === "item_core" && isBossCoreName(itemBaseName)) {
         itemDetailName.textContent = getEntryDisplayName(itemEntryType, itemBaseName);
         itemDetailDesc.textContent = getEntryDisplayDesc(itemEntryType, itemBaseName, itemBaseDesc);
+        applyDetailIcon(itemDetailIcon, itemEntryType, itemBaseName);
       }
     }
 
