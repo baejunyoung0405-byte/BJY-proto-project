@@ -1777,6 +1777,9 @@
       const enemies = [];
       const bosses = [];
       const bossCoreDrops = [];
+      const bossCoreNames = ["피닉스 코어", "라이거 코어", "현무 코어", "드라군 코어"];
+      const bossCoreInventory = Object.fromEntries(bossCoreNames.map((name) => [name, 0]));
+      const bossCoreCodexUnlocked = Object.fromEntries(bossCoreNames.map((name) => [name, false]));
       const bossEggs = [];
       const enemyProjectiles = [];
       const enemyBeams = [];
@@ -4687,6 +4690,9 @@
       entries.forEach((entry) => {
         const item = document.createElement("div");
         item.className = "gridItem";
+        item.dataset.baseName = entry.name || "항목";
+        item.dataset.baseDesc = entry.desc || "";
+        item.dataset.entryType = entry.entryType || "generic";
         item.dataset.name = entry.name || "항목";
         item.dataset.desc = entry.desc || "";
         item.innerHTML = `
@@ -4698,37 +4704,96 @@
     }
 
     const rareBossCodexEntries = [
-      { name: "피닉스", desc: "피닉스 레어의 보스. 불꽃 날개와 꼬리를 지닌 고속 근접형 보스." },
-      { name: "라이거", desc: "라이거 레어의 보스. 번개 꼬리를 활용해 돌진과 연속 타격을 구사한다." },
-      { name: "현무", desc: "현무 레어의 보스. 단단한 방어와 범위 공격을 사용하는 중장형 보스." },
-      { name: "드라군", desc: "드라군 레어의 보스. 긴 몸체와 날개를 활용한 기동/원거리 복합형 보스." },
-      { name: "피닉스 코어", desc: "피닉스를 처치하면 획득 가능한 보스 코어 아이템." },
-      { name: "라이거 코어", desc: "라이거를 처치하면 획득 가능한 보스 코어 아이템." },
-      { name: "현무 코어", desc: "현무를 처치하면 획득 가능한 보스 코어 아이템." },
-      { name: "드라군 코어", desc: "드라군을 처치하면 획득 가능한 보스 코어 아이템." }
+      { name: "피닉스", desc: "피닉스 레어의 보스. 불꽃 날개와 꼬리를 지닌 고속 근접형 보스.", entryType: "codex_boss" },
+      { name: "라이거", desc: "라이거 레어의 보스. 번개 꼬리를 활용해 돌진과 연속 타격을 구사한다.", entryType: "codex_boss" },
+      { name: "현무", desc: "현무 레어의 보스. 단단한 방어와 범위 공격을 사용하는 중장형 보스.", entryType: "codex_boss" },
+      { name: "드라군", desc: "드라군 레어의 보스. 긴 몸체와 날개를 활용한 기동/원거리 복합형 보스.", entryType: "codex_boss" },
+      { name: "피닉스 코어", desc: "피닉스를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
+      { name: "라이거 코어", desc: "라이거를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
+      { name: "현무 코어", desc: "현무를 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" },
+      { name: "드라군 코어", desc: "드라군을 처치하면 획득 가능한 보스 코어 아이템.", entryType: "codex_core" }
     ];
 
     const rareBossItemEntries = [
-      { name: "피닉스 코어", desc: "피닉스 처치 보상. 붉은 열기를 품은 핵심 코어." },
-      { name: "라이거 코어", desc: "라이거 처치 보상. 강한 전기 성질이 담긴 핵심 코어." },
-      { name: "현무 코어", desc: "현무 처치 보상. 안정적인 방어 성질이 담긴 핵심 코어." },
-      { name: "드라군 코어", desc: "드라군 처치 보상. 고출력 에너지가 응축된 핵심 코어." }
+      { name: "피닉스 코어", desc: "피닉스 처치 보상. 붉은 열기를 품은 핵심 코어.", entryType: "item_core" },
+      { name: "라이거 코어", desc: "라이거 처치 보상. 강한 전기 성질이 담긴 핵심 코어.", entryType: "item_core" },
+      { name: "현무 코어", desc: "현무 처치 보상. 안정적인 방어 성질이 담긴 핵심 코어.", entryType: "item_core" },
+      { name: "드라군 코어", desc: "드라군 처치 보상. 고출력 에너지가 응축된 핵심 코어.", entryType: "item_core" }
     ];
+
+    function isBossCoreName(name) {
+      return Object.prototype.hasOwnProperty.call(bossCoreInventory, name);
+    }
+
+    function getEntryDisplayName(entryType, baseName) {
+      if (entryType === "item_core" && isBossCoreName(baseName)) {
+        return `${baseName} x${bossCoreInventory[baseName]}`;
+      }
+      if (entryType === "codex_core" && isBossCoreName(baseName)) {
+        return `${baseName} ${bossCoreCodexUnlocked[baseName] ? "[해금]" : "[미해금]"}`;
+      }
+      return baseName;
+    }
+
+    function getEntryDisplayDesc(entryType, baseName, baseDesc) {
+      if (entryType === "item_core" && isBossCoreName(baseName)) {
+        return `${baseDesc} 현재 보유 수량: ${bossCoreInventory[baseName]}`;
+      }
+      if (entryType === "codex_core" && isBossCoreName(baseName)) {
+        const status = bossCoreCodexUnlocked[baseName] ? "해금됨" : "미해금";
+        return `${baseDesc} 현재 도감 상태: ${status}`;
+      }
+      return baseDesc || `${baseName}의 설명이 이 영역에 표시됩니다.`;
+    }
+
+    function refreshCoreCollectionUI() {
+      const allCoreEntries = document.querySelectorAll(".gridItem[data-entry-type='item_core'], .gridItem[data-entry-type='codex_core']");
+      allCoreEntries.forEach((entry) => {
+        const baseName = entry.dataset.baseName || entry.dataset.name || "항목";
+        const entryType = entry.dataset.entryType || "generic";
+        const baseDesc = entry.dataset.baseDesc || "";
+        entry.dataset.name = getEntryDisplayName(entryType, baseName);
+        entry.dataset.desc = getEntryDisplayDesc(entryType, baseName, baseDesc);
+        const label = entry.querySelector(".gridLabel");
+        if (label) label.textContent = entry.dataset.name;
+      });
+
+      const codexBaseName = codexDetailName.dataset.baseName || "";
+      const codexEntryType = codexDetailName.dataset.entryType || "";
+      const codexBaseDesc = codexDetailDesc.dataset.baseDesc || codexDetailDesc.textContent || "";
+      if (codexEntryType === "codex_core" && isBossCoreName(codexBaseName)) {
+        codexDetailName.textContent = getEntryDisplayName(codexEntryType, codexBaseName);
+        codexDetailDesc.textContent = getEntryDisplayDesc(codexEntryType, codexBaseName, codexBaseDesc);
+      }
+
+      const itemBaseName = itemDetailName.dataset.baseName || "";
+      const itemEntryType = itemDetailName.dataset.entryType || "";
+      const itemBaseDesc = itemDetailDesc.dataset.baseDesc || itemDetailDesc.textContent || "";
+      if (itemEntryType === "item_core" && isBossCoreName(itemBaseName)) {
+        itemDetailName.textContent = getEntryDisplayName(itemEntryType, itemBaseName);
+        itemDetailDesc.textContent = getEntryDisplayDesc(itemEntryType, itemBaseName, itemBaseDesc);
+      }
+    }
 
     populateGridEntries(codexGridWrap, rareBossCodexEntries);
     populateGrid(codexGridWrap, "도감", 42);
     populateGridEntries(itemGridWrap, rareBossItemEntries);
     populateGrid(itemGridWrap, "아이템", 46);
     populateGrid(shopGridWrap, "상점");
+    refreshCoreCollectionUI();
 
     function bindGrid(gridEl, nameEl, descEl) {
       gridEl.addEventListener("click", (event) => {
         const target = event.target.closest(".gridItem");
         if (!target) return;
-        const name = target.dataset.name || "항목";
-        const desc = target.dataset.desc || `${name}의 설명이 이 영역에 표시됩니다.`;
-        nameEl.textContent = name;
-        descEl.textContent = desc;
+        const entryType = target.dataset.entryType || "generic";
+        const baseName = target.dataset.baseName || target.dataset.name || "항목";
+        const baseDesc = target.dataset.baseDesc || target.dataset.desc || "";
+        nameEl.dataset.entryType = entryType;
+        nameEl.dataset.baseName = baseName;
+        descEl.dataset.baseDesc = baseDesc;
+        nameEl.textContent = getEntryDisplayName(entryType, baseName);
+        descEl.textContent = getEntryDisplayDesc(entryType, baseName, baseDesc);
       });
     }
 
@@ -5473,6 +5538,11 @@
           core.mesh.position.y += Math.sin(now * 3 + i) * 0.002;
           const canPick = core.mesh.position.distanceTo(player.position) <= 1 && playerRoomIndex === core.roomIndex;
           if (canPick) {
+            if (isBossCoreName(core.name)) {
+              bossCoreInventory[core.name] += 1;
+              bossCoreCodexUnlocked[core.name] = true;
+              refreshCoreCollectionUI();
+            }
             spawnFloatingText(core.mesh.position.clone().add(new THREE.Vector3(0, 0.45, 0)), `${core.name} 획득`, "#ffe7a0");
             removeBossCoreDrop(core);
             continue;
