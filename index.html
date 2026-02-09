@@ -2454,65 +2454,114 @@
       function animateBossModel(boss, now, delta) {
         const anim = boss.mesh.userData.anim;
         if (!anim) return;
-        const phase = (boss.animatePhase || 0) + now * (boss.aggro ? 2.2 : 1.2);
+        const action = now < (boss.animActionUntil || 0)
+          ? (boss.animAction || "idle")
+          : (boss.aggro ? "chase" : (boss.state === "return" ? "return" : "idle"));
+        const actionSpeed =
+          action === "ultimate" ? 2.9
+          : action === "melee" ? 2.6
+          : action === "dash" ? 2.7
+          : action === "ranged" ? 2.1
+          : action === "defense" ? 1.2
+          : action === "chase" ? 2.2
+          : action === "return" ? 1.4
+          : 1.05;
+        const actionPower =
+          action === "ultimate" ? 1.45
+          : action === "melee" ? 1.3
+          : action === "dash" ? 1.24
+          : action === "ranged" ? 1.08
+          : action === "defense" ? 0.7
+          : action === "chase" ? 1
+          : action === "return" ? 0.72
+          : 0.56;
+        const phase = (boss.animatePhase || 0) + now * actionSpeed;
+        const pulse = Math.sin(phase * 2.4) * actionPower;
         if (anim.type === "phoenix") {
-          const flap = Math.sin(phase * 3.1) * (boss.aggro ? 0.28 : 0.14);
+          const flap = Math.sin(phase * 3.1) * (0.16 + actionPower * 0.14);
           if (anim.wingL) anim.wingL.rotation.z = -1.05 - flap;
           if (anim.wingR) anim.wingR.rotation.z = 1.05 + flap;
-          if (anim.wingTipL) anim.wingTipL.rotation.y = 0.48 + flap * 0.8;
-          if (anim.wingTipR) anim.wingTipR.rotation.y = 0.48 - flap * 0.8;
-          if (anim.head) anim.head.rotation.x = Math.sin(phase * 1.7) * 0.08;
-          if (anim.tail) anim.tail.rotation.y = Math.sin(phase * 1.3) * 0.18;
-          if (anim.tailTip) anim.tailTip.rotation.y = Math.sin(phase * 2.1) * 0.28;
+          if (anim.wingTipL) anim.wingTipL.rotation.y = 0.48 + flap * 0.9;
+          if (anim.wingTipR) anim.wingTipR.rotation.y = 0.48 - flap * 0.9;
+          if (anim.head) anim.head.rotation.x = Math.sin(phase * 1.7) * (0.04 + actionPower * 0.05);
+          if (anim.tail) anim.tail.rotation.y = Math.sin(phase * 1.3) * (0.1 + actionPower * 0.11);
+          if (anim.tailTip) anim.tailTip.rotation.y = Math.sin(phase * 2.1) * (0.16 + actionPower * 0.14);
           if (anim.tailFlare) anim.tailFlare.rotation.z = Math.sin(phase * 3.8) * 0.45;
           if (anim.chestRing) anim.chestRing.rotation.z = Math.sin(phase * 2.1) * 0.22;
           if (anim.wingAuraL) anim.wingAuraL.rotation.y = 0.2 + Math.sin(phase * 2.7) * 0.24;
           if (anim.wingAuraR) anim.wingAuraR.rotation.y = -0.2 - Math.sin(phase * 2.7) * 0.24;
-          if (anim.legL) anim.legL.rotation.x = Math.sin(phase * 2.2) * 0.16;
-          if (anim.legR) anim.legR.rotation.x = -Math.sin(phase * 2.2) * 0.16;
+          if (anim.legL) anim.legL.rotation.x = Math.sin(phase * 2.2) * (0.08 + actionPower * 0.1);
+          if (anim.legR) anim.legR.rotation.x = -Math.sin(phase * 2.2) * (0.08 + actionPower * 0.1);
         } else if (anim.type === "liger") {
-          if (anim.head) anim.head.rotation.x = Math.sin(phase * 1.4) * 0.07;
-          if (anim.shoulder) anim.shoulder.position.y = 0.44 + Math.sin(phase * 2.2) * 0.04;
-          if (anim.tail) anim.tail.rotation.y = Math.sin(phase * 1.9) * 0.35;
+          if (anim.head) anim.head.rotation.x = Math.sin(phase * 1.4) * (0.03 + actionPower * 0.05);
+          if (anim.shoulder) anim.shoulder.position.y = 0.44 + Math.sin(phase * 2.2) * (0.02 + actionPower * 0.025);
+          if (anim.tail) anim.tail.rotation.y = Math.sin(phase * 1.9) * (0.14 + actionPower * 0.22);
           if (anim.bolt1) anim.bolt1.position.y = 0.7 + Math.sin(phase * 3.4) * 0.05;
           if (anim.bolt2) anim.bolt2.position.y = 0.95 + Math.sin(phase * 3.2 + 0.6) * 0.05;
           if (anim.bolt3) anim.bolt3.position.y = 1.13 + Math.sin(phase * 3.0 + 1.2) * 0.05;
           if (anim.tailArc) anim.tailArc.rotation.z = Math.sin(phase * 3.6) * 0.38;
-          if (anim.legFrontL) anim.legFrontL.rotation.x = Math.sin(phase * 2.5) * 0.22;
-          if (anim.legFrontR) anim.legFrontR.rotation.x = -Math.sin(phase * 2.5) * 0.22;
-          if (anim.jaw) anim.jaw.rotation.x = -0.08 + Math.sin(phase * 3.2) * 0.04;
+          if (anim.legFrontL) anim.legFrontL.rotation.x = Math.sin(phase * 2.5) * (0.1 + actionPower * 0.14);
+          if (anim.legFrontR) anim.legFrontR.rotation.x = -Math.sin(phase * 2.5) * (0.1 + actionPower * 0.14);
+          if (anim.jaw) {
+            const jawOpen =
+              action === "melee" ? 0.08
+              : action === "ranged" ? 0.05
+              : action === "ultimate" ? 0.12
+              : 0.03;
+            anim.jaw.rotation.x = -0.08 + jawOpen + Math.sin(phase * 3.2) * 0.03;
+          }
         } else if (anim.type === "hyunmu") {
-          if (anim.neck) anim.neck.rotation.y = Math.sin(phase * 1.1) * 0.14;
-          if (anim.head) anim.head.rotation.y = Math.sin(phase * 1.7) * 0.2;
-          if (anim.tail1) anim.tail1.rotation.y = Math.sin(phase * 1.3) * 0.12;
-          if (anim.tail2) anim.tail2.rotation.y = Math.sin(phase * 1.6 + 0.5) * 0.18;
-          if (anim.tail3) anim.tail3.rotation.y = Math.sin(phase * 2.1 + 1.1) * 0.24;
-          if (anim.tailFinL) anim.tailFinL.rotation.y = Math.sin(phase * 2.4) * 0.22;
-          if (anim.tailFinR) anim.tailFinR.rotation.y = -Math.sin(phase * 2.4) * 0.22;
-          if (anim.legA) anim.legA.rotation.z = Math.sin(phase * 1.8) * 0.08;
-          if (anim.legB) anim.legB.rotation.z = -Math.sin(phase * 1.8) * 0.08;
+          if (anim.neck) anim.neck.rotation.y = Math.sin(phase * 1.1) * (0.06 + actionPower * 0.08);
+          if (anim.head) anim.head.rotation.y = Math.sin(phase * 1.7) * (0.08 + actionPower * 0.12);
+          if (anim.tail1) anim.tail1.rotation.y = Math.sin(phase * 1.3) * (0.05 + actionPower * 0.07);
+          if (anim.tail2) anim.tail2.rotation.y = Math.sin(phase * 1.6 + 0.5) * (0.08 + actionPower * 0.1);
+          if (anim.tail3) anim.tail3.rotation.y = Math.sin(phase * 2.1 + 1.1) * (0.12 + actionPower * 0.12);
+          if (anim.tailFinL) anim.tailFinL.rotation.y = Math.sin(phase * 2.4) * (0.08 + actionPower * 0.14);
+          if (anim.tailFinR) anim.tailFinR.rotation.y = -Math.sin(phase * 2.4) * (0.08 + actionPower * 0.14);
+          if (anim.legA) anim.legA.rotation.z = Math.sin(phase * 1.8) * (0.04 + actionPower * 0.06);
+          if (anim.legB) anim.legB.rotation.z = -Math.sin(phase * 1.8) * (0.04 + actionPower * 0.06);
         } else if (anim.type === "dragoon") {
-          const wing = Math.sin(phase * 2.5) * (boss.aggro ? 0.22 : 0.1);
+          const wing = Math.sin(phase * 2.5) * (0.1 + actionPower * 0.14);
           if (anim.wingL) anim.wingL.rotation.z = -1.05 - wing;
           if (anim.wingR) anim.wingR.rotation.z = 1.05 + wing;
           if (anim.wingMemL) anim.wingMemL.rotation.y = 0.52 + wing * 0.7;
           if (anim.wingMemR) anim.wingMemR.rotation.y = 0.52 - wing * 0.7;
-          if (anim.neck1) anim.neck1.rotation.y = Math.sin(phase * 1.2) * 0.12;
-          if (anim.neck2) anim.neck2.rotation.y = Math.sin(phase * 1.5 + 0.5) * 0.16;
-          if (anim.head) anim.head.rotation.y = Math.sin(phase * 1.9 + 1.0) * 0.22;
-          if (anim.tail1) anim.tail1.rotation.y = Math.sin(phase * 1.2) * 0.14;
-          if (anim.tail2) anim.tail2.rotation.y = Math.sin(phase * 1.6 + 0.7) * 0.2;
-          if (anim.tail3) anim.tail3.rotation.y = Math.sin(phase * 2.1 + 1.2) * 0.26;
-          if (anim.jaw) anim.jaw.rotation.x = -0.04 + Math.sin(phase * 2.8) * 0.05;
-          if (anim.legA) anim.legA.rotation.x = Math.sin(phase * 2.2) * 0.15;
-          if (anim.legB) anim.legB.rotation.x = -Math.sin(phase * 2.2) * 0.15;
+          if (anim.neck1) anim.neck1.rotation.y = Math.sin(phase * 1.2) * (0.05 + actionPower * 0.07);
+          if (anim.neck2) anim.neck2.rotation.y = Math.sin(phase * 1.5 + 0.5) * (0.08 + actionPower * 0.1);
+          if (anim.head) anim.head.rotation.y = Math.sin(phase * 1.9 + 1.0) * (0.1 + actionPower * 0.12);
+          if (anim.tail1) anim.tail1.rotation.y = Math.sin(phase * 1.2) * (0.06 + actionPower * 0.08);
+          if (anim.tail2) anim.tail2.rotation.y = Math.sin(phase * 1.6 + 0.7) * (0.1 + actionPower * 0.1);
+          if (anim.tail3) anim.tail3.rotation.y = Math.sin(phase * 2.1 + 1.2) * (0.12 + actionPower * 0.14);
+          if (anim.jaw) {
+            const jawOpen =
+              action === "ranged" ? 0.08
+              : action === "ultimate" ? 0.14
+              : action === "melee" ? 0.06
+              : 0.02;
+            anim.jaw.rotation.x = -0.04 + jawOpen + Math.sin(phase * 2.8) * 0.04;
+          }
+          if (anim.legA) anim.legA.rotation.x = Math.sin(phase * 2.2) * (0.06 + actionPower * 0.09);
+          if (anim.legB) anim.legB.rotation.x = -Math.sin(phase * 2.2) * (0.06 + actionPower * 0.09);
         }
-        const bob = Math.sin(phase * 1.8) * (boss.aggro ? 0.02 : 0.01);
+        const bob =
+          action === "dash" ? Math.sin(phase * 3.4) * 0.01
+          : action === "defense" ? Math.sin(phase * 1.3) * 0.005
+          : Math.sin(phase * 1.8) * (0.006 + actionPower * 0.01);
         if (boss.core) {
           if (typeof boss.core.userData.baseY !== "number") {
             boss.core.userData.baseY = boss.core.position.y;
           }
           boss.core.position.y = boss.core.userData.baseY + bob;
+        }
+        if (boss.mesh) {
+          const tiltTarget =
+            action === "melee" ? 0.16
+            : action === "dash" ? 0.12
+            : action === "ranged" ? 0.06
+            : action === "defense" ? -0.04
+            : action === "ultimate" ? 0.18
+            : 0;
+          boss.mesh.rotation.x += (tiltTarget - boss.mesh.rotation.x) * Math.min(1, delta * 5.5);
         }
       }
 
@@ -2724,6 +2773,8 @@
           nextMoveUpdate: now,
           aggro: false,
           state: "idle",
+          animAction: "idle",
+          animActionUntil: now + 0.2,
           shieldUntil: 0,
           ultimateUntil: 0,
           nextUltimatePulseAt: 0,
@@ -4164,7 +4215,13 @@
         return boss.tertiarySubtype || DAMAGE_SUBTYPE.CLUSTER;
       }
 
+      function setBossAnimAction(boss, action, now, duration = 0.38) {
+        boss.animAction = action;
+        boss.animActionUntil = now + Math.max(0.08, duration);
+      }
+
       function performBossMeleePattern(boss, patternIndex, now, distToPlayer) {
+        setBossAnimAction(boss, "melee", now, 0.48);
         const impactSubtype = getBossPatternSubtype(boss, patternIndex);
         const zoneSubtype = getBossAlternateSubtype(boss, patternIndex);
         const impactColor = ATTRIBUTE_PROFILE[impactSubtype]?.color || boss.baseColor;
@@ -4185,6 +4242,7 @@
       }
 
       function performBossMovePattern(boss, patternIndex, now) {
+        setBossAnimAction(boss, "dash", now, 0.42);
         const moveSubtype = getBossPatternSubtype(boss, patternIndex);
         const moveColor = ATTRIBUTE_PROFILE[moveSubtype]?.color || boss.baseColor;
         const extraSubtype = getBossTertiarySubtype(boss);
@@ -4211,6 +4269,7 @@
       }
 
       function performBossRangedPattern(boss, patternIndex, now) {
+        setBossAnimAction(boss, "ranged", now, 0.52);
         const rangedSubtype = getBossPatternSubtype(boss, patternIndex);
         const rangedColor = ATTRIBUTE_PROFILE[rangedSubtype]?.color || boss.baseColor;
         const toPlayer = player.position.clone().sub(boss.mesh.position);
@@ -4244,6 +4303,7 @@
       }
 
       function triggerBossDefensePattern(boss, now) {
+        setBossAnimAction(boss, "defense", now, 0.82);
         const defenseSubtype = getBossTertiarySubtype(boss);
         const defenseColor = ATTRIBUTE_PROFILE[defenseSubtype]?.color || 0x9fd7ff;
         spawnBossTelegraphCircle(boss.mesh.position.clone(), 3.2, defenseColor, 0.5);
@@ -4255,6 +4315,7 @@
       }
 
       function triggerBossUltimatePattern(boss, now) {
+        setBossAnimAction(boss, "ultimate", now, 1.1);
         spawnBossTelegraphCircle(boss.mesh.position.clone(), 8.2, boss.baseColor, 0.65);
         boss.ultimateUntil = now + 6;
         boss.nextUltimatePulseAt = now;
@@ -5812,13 +5873,18 @@
           const horizontalDistToPlayer = Math.hypot(toPlayerVec.x, toPlayerVec.z);
           const verticalDistToPlayer = Math.abs(toPlayerVec.y);
           const playerInSameRare = playerRoomIndex === boss.roomIndex;
+          const wasAggro = !!boss.aggro;
 
           if (playerInSameRare) {
             boss.aggro = true;
             if (boss.state === "idle" || boss.state === "return") boss.state = "chase";
+            if (!wasAggro) {
+              setBossAnimAction(boss, "alert", now, 0.5);
+            }
           } else if (boss.aggro) {
             boss.aggro = false;
             boss.state = "return";
+            setBossAnimAction(boss, "return", now, 0.6);
           }
 
           if (boss.aggro) {
@@ -5846,6 +5912,16 @@
             }
           } else {
             boss.moveTarget = boss.spawnPos.clone();
+          }
+
+          if (now >= (boss.animActionUntil || 0)) {
+            if (boss.aggro) {
+              setBossAnimAction(boss, "chase", now, 0.35);
+            } else if (boss.state === "return") {
+              setBossAnimAction(boss, "return", now, 0.45);
+            } else {
+              setBossAnimAction(boss, "idle", now, 0.55);
+            }
           }
 
           if (now < boss.ultimateUntil && now >= boss.nextUltimatePulseAt) {
