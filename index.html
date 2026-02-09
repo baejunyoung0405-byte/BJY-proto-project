@@ -2559,6 +2559,11 @@
         }
       }
 
+      function hasEnergyForCost(amount, now) {
+        if (now < expansionActiveUntil) return true;
+        return staminaCooldown ? en >= amount : stamina >= amount;
+      }
+
       function normalizeDamagePacket(input, fallbackSubtype) {
         if (typeof input === "number") {
           return {
@@ -3142,9 +3147,10 @@
           const dashKeyMap = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d" };
           if (keys.shift && keys.w) {
             const dashKey = "w";
+            const now = performance.now() / 1000;
             if (
-              ((staminaCooldown && en >= 8) || (!staminaCooldown && stamina >= 8)) &&
-              performance.now() / 1000 >= dashCooldownEnd[dashKey]
+              hasEnergyForCost(8, now) &&
+              now >= dashCooldownEnd[dashKey]
             ) {
               const dashForward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
               const dashDir = dashForward.clone().normalize();
@@ -3157,24 +3163,20 @@
               if (isInsideAnyRoom(dashTryZ) && !collidesWithBlocks(dashTryZ)) {
                 player.position.z = dashTryZ.z;
               }
-              stamina = Math.max(0, stamina - 8);
-              if (stamina <= 0) {
-                stamina = 0;
-                staminaCooldown = true;
-                staminaCooldownEnd = performance.now() / 1000 + 10;
-              }
-              dashCooldownEnd[dashKey] = performance.now() / 1000 + dashCooldown;
+              consumeEnergy(8, now);
+              dashCooldownEnd[dashKey] = now + dashCooldown;
             }
           }
         }
         const dashKeyMap = { KeyW: "w", KeyA: "a", KeyS: "s", KeyD: "d" };
         const dashKey = dashKeyMap[event.code];
+        const now = performance.now() / 1000;
       if (
         dashKey &&
         keys.shift && keys.space &&
-        ((staminaCooldown && en >= 8) || (!staminaCooldown && stamina >= 8)) &&
+        hasEnergyForCost(8, now) &&
         !energyLock &&
-        performance.now() / 1000 >= dashCooldownEnd[dashKey]
+        now >= dashCooldownEnd[dashKey]
       ) {
         const dashForward = new THREE.Vector3(-Math.sin(yaw), 0, -Math.cos(yaw));
         const dashRight = new THREE.Vector3(Math.sin(yaw + Math.PI / 2), 0, Math.cos(yaw + Math.PI / 2));
@@ -3197,8 +3199,8 @@
           }
           if (dashKey === "a") dashTiltPulse = 0.2;
           if (dashKey === "d") dashTiltPulse = -0.2;
-          consumeEnergy(8, performance.now() / 1000);
-          dashCooldownEnd[dashKey] = performance.now() / 1000 + dashCooldown;
+          consumeEnergy(8, now);
+          dashCooldownEnd[dashKey] = now + dashCooldown;
         }
       }
     });
